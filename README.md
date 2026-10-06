@@ -6,6 +6,8 @@ Admins mark out irradiated zones and place radiation sources. Players who walk i
 **rad meter** in the top left corner showing how many RAD/s they are absorbing, hear a Geiger counter
 clicking, and pass through stages of radiation sickness until they die at 1000 rads.
 
+Online handbook: https://mchamradio.antwire.net/handbook/radiation/
+
 ## Installing with Prism Launcher
 
 1. In Prism, create a new instance (**Add Instance**), choose Minecraft **26.3**, and pick **Fabric**
