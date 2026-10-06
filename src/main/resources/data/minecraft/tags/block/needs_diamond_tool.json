@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "radiation:vault_door",
+    "radiation:vault_door_part"
+  ]
+}

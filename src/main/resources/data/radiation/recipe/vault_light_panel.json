@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "N": "minecraft:iron_nugget",
+    "G": "minecraft:glowstone"
+  },
+  "pattern": [
+    "NGN"
+  ],
+  "result": {
+    "id": "radiation:vault_light_panel",
+    "count": 2
+  }
+}

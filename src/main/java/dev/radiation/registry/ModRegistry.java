@@ -136,6 +136,7 @@ public final class ModRegistry {
 						output.accept(HAZMAT_LEGGINGS);
 						output.accept(HAZMAT_BOOTS);
 						output.accept(NUCLEAR_WASTE_BARREL_ITEM);
+						dev.radiation.vault.VaultBlocks.addToTab(output);
 					})
 					.build());
 

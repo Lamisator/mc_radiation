@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "O": "minecraft:obsidian"
+  },
+  "pattern": [
+    "IO",
+    "OI"
+  ],
+  "result": {
+    "id": "radiation:vault_door_frame",
+    "count": 4
+  }
+}

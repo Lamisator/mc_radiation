@@ -13,5 +13,50 @@
       "radiation:rad_warning"
     ],
     "subtitle": "subtitles.radiation.rad_warning"
+  },
+  "vault_door_open": {
+    "sounds": [
+      {
+        "name": "radiation:vault_door_open",
+        "attenuation_distance": 48
+      }
+    ],
+    "subtitle": "subtitles.radiation.vault_door_open"
+  },
+  "vault_door_close": {
+    "sounds": [
+      {
+        "name": "radiation:vault_door_close",
+        "attenuation_distance": 48
+      }
+    ],
+    "subtitle": "subtitles.radiation.vault_door_close"
+  },
+  "sliding_door_open": {
+    "sounds": [
+      {
+        "name": "radiation:sliding_door_open",
+        "attenuation_distance": 16
+      }
+    ],
+    "subtitle": "subtitles.radiation.sliding_door_open"
+  },
+  "sliding_door_close": {
+    "sounds": [
+      {
+        "name": "radiation:sliding_door_close",
+        "attenuation_distance": 16
+      }
+    ],
+    "subtitle": "subtitles.radiation.sliding_door_close"
+  },
+  "vault_console_beep": {
+    "sounds": [
+      {
+        "name": "radiation:vault_console_beep",
+        "attenuation_distance": 16
+      }
+    ],
+    "subtitle": "subtitles.radiation.vault_console_beep"
   }
 }

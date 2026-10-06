@@ -3,7 +3,14 @@ package dev.radiation.client;
 import dev.radiation.RadiationMod;
 import dev.radiation.network.RadiationSettingsPayload;
 import dev.radiation.network.RadiationStatusPayload;
+import dev.radiation.client.vault.SlidingDoorRenderer;
+import dev.radiation.client.vault.VaultDoorRenderer;
+import dev.radiation.client.vault.VaultDoorScreen;
+import dev.radiation.util.ClientHooks;
+import dev.radiation.vault.VaultBlocks;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
+import net.minecraft.client.Minecraft;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -20,5 +27,9 @@ public class RadiationClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(GeigerCounterSound::tick);
 		HudElementRegistry.addLast(RadiationMod.id("rad_meter"), new RadMeterHud());
+
+		BlockEntityRendererRegistry.register(VaultBlocks.VAULT_DOOR_ENTITY, VaultDoorRenderer::new);
+		BlockEntityRendererRegistry.register(VaultBlocks.SLIDING_DOOR_ENTITY, SlidingDoorRenderer::new);
+		ClientHooks.openVaultDoorSettings = door -> Minecraft.getInstance().gui.setScreen(new VaultDoorScreen(door));
 	}
 }

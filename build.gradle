@@ -79,3 +79,15 @@ publishing {
 		// retrieving dependencies.
 	}
 }
+
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "radiation-gametest"
+		eula = true
+		enableGameTests = false
+		enableClientGameTests = true
+		clearRunDirectory = false
+		username = "Lamisator"
+	}
+}

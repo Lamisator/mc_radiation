@@ -1,6 +1,5 @@
 {
   "itemGroup.radiation": "Radiation",
-
   "item.radiation.radaway": "RadAway",
   "item.radiation.radaway.desc": "Flushes 150 rads out of your body over 10 seconds",
   "item.radiation.rad_x": "Rad-X",
@@ -14,17 +13,13 @@
   "item.radiation.hazmat.desc": "Blocks some radiation; the full set blocks most of it",
   "block.radiation.nuclear_waste_barrel": "Nuclear Waste Barrel",
   "block.radiation.nuclear_waste_barrel.desc": "Leaks radiation into its surroundings",
-
   "effect.radiation.radiation_sickness": "Radiation Sickness",
   "effect.radiation.rad_resistance": "Rad Resistance",
   "effect.radiation.radaway": "RadAway",
-
   "death.attack.radiation": "%1$s died of radiation poisoning",
   "death.attack.radiation.player": "%1$s died of radiation poisoning while fighting %2$s",
-
   "subtitles.radiation.geiger_click": "Geiger counter clicks",
   "subtitles.radiation.rad_warning": "Radiation warning",
-
   "message.radiation.stage_worse": "You are suffering from %s!",
   "message.radiation.stage_better": "Your condition improves: %s",
   "message.radiation.cured": "Your radiation sickness has subsided",
@@ -34,7 +29,6 @@
   "message.radiation.reading.absorbed": "Absorbed: %s / %s rads",
   "message.radiation.reading.protection": "Protection: %s%%",
   "message.radiation.reading.condition": "Condition: %s",
-
   "commands.radiation.self": "You have absorbed %s / %s rads. Condition: %s",
   "commands.radiation.exists": "'%s' already exists",
   "commands.radiation.unknown": "No zone or source named '%s'",
@@ -53,5 +47,38 @@
   "commands.radiation.set.multiple": "Updated the rads of %s players",
   "commands.radiation.clear": "Cleared the rads of %s players",
   "commands.radiation.reload": "Reloaded radiation config and sources",
-  "commands.radiation.reload.failed": "Could not read config/radiation.json - check the log. Previous settings kept."
+  "commands.radiation.reload.failed": "Could not read config/radiation.json - check the log. Previous settings kept.",
+  "block.radiation.vault_door": "Vault Door",
+  "block.radiation.vault_door.desc": "A cog-shaped vault door for a round 5×5 opening, opened by a screw arm behind it. Needs room behind it: 7 blocks deep, 4 above its centre, 8 to the side. Sneak-use to set its number.",
+  "block.radiation.vault_door.no_room": "The vault door needs a free 5×5 opening.",
+  "block.radiation.vault_door.use_console": "Use a Vault Door Console to open the door.",
+  "block.radiation.vault_door.no_permission": "Only operators can renumber a vault door.",
+  "block.radiation.vault_door_part": "Vault Door",
+  "block.radiation.vault_console": "Vault Door Console",
+  "block.radiation.vault_console.desc": "Opens and closes the nearest vault door within 16 blocks.",
+  "block.radiation.vault_console.no_door": "No vault door within 16 blocks.",
+  "block.radiation.vault_console.opening": "Vault door %s opening",
+  "block.radiation.vault_console.closing": "Vault door %s closing",
+  "block.radiation.vault_sliding_door": "Vault Sliding Door",
+  "block.radiation.vault_sliding_door.desc": "Slides up into the wall above. Neighbouring doors in the same wall open together.",
+  "block.radiation.vault_wall": "Vault Wall Panel",
+  "block.radiation.vault_wall_stripe": "Striped Vault Wall Panel",
+  "block.radiation.vault_wall_pipes": "Vault Pipe Panel",
+  "block.radiation.vault_floor": "Vault Floor Plate",
+  "block.radiation.vault_grate": "Vault Floor Grate",
+  "block.radiation.vault_hazard_stripes": "Hazard Stripes",
+  "block.radiation.vault_door_frame": "Vault Door Frame",
+  "block.radiation.vault_light_panel": "Vault Light Panel",
+  "block.radiation.vault_neon_blue": "Blue Neon Tube",
+  "block.radiation.vault_neon_yellow": "Yellow Neon Tube",
+  "block.radiation.vault_neon_white": "White Neon Tube",
+  "screen.radiation.vault_door": "Vault Door",
+  "screen.radiation.vault_door.number": "Printed number (0–999)",
+  "screen.radiation.vault_door.roll_left": "Rolls aside: to the left",
+  "screen.radiation.vault_door.roll_right": "Rolls aside: to the right",
+  "subtitles.radiation.vault_door_open": "Vault door opens",
+  "subtitles.radiation.vault_door_close": "Vault door closes",
+  "subtitles.radiation.sliding_door_open": "Sliding door opens",
+  "subtitles.radiation.sliding_door_close": "Sliding door closes",
+  "subtitles.radiation.vault_console_beep": "Vault console beeps"
 }

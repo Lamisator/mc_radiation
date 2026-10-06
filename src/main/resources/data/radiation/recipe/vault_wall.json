@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "S": "minecraft:smooth_stone",
+    "I": "minecraft:iron_ingot"
+  },
+  "pattern": [
+    "SSS",
+    "SIS",
+    "SSS"
+  ],
+  "result": {
+    "id": "radiation:vault_wall",
+    "count": 8
+  }
+}

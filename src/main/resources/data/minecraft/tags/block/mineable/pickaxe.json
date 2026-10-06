@@ -1,6 +1,21 @@
 {
   "replace": false,
   "values": [
-    "radiation:nuclear_waste_barrel"
+    "radiation:nuclear_waste_barrel",
+    "radiation:vault_wall",
+    "radiation:vault_wall_stripe",
+    "radiation:vault_wall_pipes",
+    "radiation:vault_floor",
+    "radiation:vault_hazard_stripes",
+    "radiation:vault_door_frame",
+    "radiation:vault_grate",
+    "radiation:vault_door",
+    "radiation:vault_console",
+    "radiation:vault_light_panel",
+    "radiation:vault_neon_blue",
+    "radiation:vault_neon_yellow",
+    "radiation:vault_neon_white",
+    "radiation:vault_sliding_door",
+    "radiation:vault_door_part"
   ]
 }

@@ -4,6 +4,12 @@ import dev.radiation.command.RadiationCommands;
 import dev.radiation.config.RadiationConfig;
 import dev.radiation.network.RadiationSettingsPayload;
 import dev.radiation.network.RadiationStatusPayload;
+import dev.radiation.network.VaultDoorSettingsPayload;
+import dev.radiation.vault.VaultBlocks;
+import dev.radiation.vault.VaultDoorBlockEntity;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permissions;
 import dev.radiation.registry.ModRegistry;
 import dev.radiation.world.RadiationTracker;
 import net.fabricmc.api.ModInitializer;
@@ -29,9 +35,21 @@ public class RadiationMod implements ModInitializer {
 	public void onInitialize() {
 		RadiationConfig.load();
 		ModRegistry.init();
+		VaultBlocks.init();
 
 		PayloadTypeRegistry.clientboundPlay().register(RadiationStatusPayload.TYPE, RadiationStatusPayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(RadiationSettingsPayload.TYPE, RadiationSettingsPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(VaultDoorSettingsPayload.TYPE, VaultDoorSettingsPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(VaultDoorSettingsPayload.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			if (!player.isCreative() && !player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
+				return;
+			}
+			if (player.blockPosition().distSqr(payload.pos()) < 64 * 64
+					&& player.level().getBlockEntity(payload.pos()) instanceof VaultDoorBlockEntity door) {
+				door.configure(payload.number(), payload.rollLeft());
+			}
+		});
 
 		ServerLifecycleEvents.SERVER_STARTED.register(RadiationTracker::onServerStarted);
 		ServerLifecycleEvents.SERVER_STOPPING.register(RadiationTracker::onServerStopping);

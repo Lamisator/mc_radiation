@@ -1,0 +1,30 @@
+{
+  "variants": {
+    "facing=up": {
+      "model": "radiation:block/vault_neon_white"
+    },
+    "facing=down": {
+      "model": "radiation:block/vault_neon_white",
+      "x": 180
+    },
+    "facing=north": {
+      "model": "radiation:block/vault_neon_white",
+      "x": 90
+    },
+    "facing=south": {
+      "model": "radiation:block/vault_neon_white",
+      "x": 90,
+      "y": 180
+    },
+    "facing=west": {
+      "model": "radiation:block/vault_neon_white",
+      "x": 90,
+      "y": 270
+    },
+    "facing=east": {
+      "model": "radiation:block/vault_neon_white",
+      "x": 90,
+      "y": 90
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "textures": {
+    "t": "radiation:block/vault_light_panel",
+    "particle": "radiation:block/vault_light_panel"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        0,
+        2
+      ],
+      "to": [
+        14,
+        1,
+        14
+      ],
+      "faces": {
+        "up": {
+          "texture": "#t"
+        },
+        "down": {
+          "texture": "#t",
+          "cullface": "down"
+        },
+        "north": {
+          "texture": "#t",
+          "uv": [
+            2,
+            0,
+            14,
+            1
+          ]
+        },
+        "south": {
+          "texture": "#t",
+          "uv": [
+            2,
+            0,
+            14,
+            1
+          ]
+        },
+        "east": {
+          "texture": "#t",
+          "uv": [
+            2,
+            0,
+            14,
+            1
+          ]
+        },
+        "west": {
+          "texture": "#t",
+          "uv": [
+            2,
+            0,
+            14,
+            1
+          ]
+        }
+      }
+    }
+  ]
+}

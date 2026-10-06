@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    "radiation:vault_wall",
+    "radiation:vault_wall",
+    "minecraft:yellow_dye",
+    "minecraft:blue_dye"
+  ],
+  "result": {
+    "id": "radiation:vault_wall_stripe",
+    "count": 2
+  }
+}

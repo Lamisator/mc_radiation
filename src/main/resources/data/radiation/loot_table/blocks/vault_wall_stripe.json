@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "radiation:vault_wall_stripe"
+        }
+      ]
+    }
+  ],
+  "random_sequence": "radiation:blocks/vault_wall_stripe"
+}

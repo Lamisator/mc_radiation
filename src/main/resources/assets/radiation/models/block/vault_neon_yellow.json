@@ -1,0 +1,78 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "textures": {
+    "t": "radiation:block/vault_neon_yellow",
+    "particle": "radiation:block/vault_neon_yellow"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        7
+      ],
+      "to": [
+        16,
+        2,
+        9
+      ],
+      "faces": {
+        "up": {
+          "texture": "#t",
+          "uv": [
+            0,
+            6,
+            16,
+            10
+          ]
+        },
+        "down": {
+          "texture": "#t",
+          "uv": [
+            0,
+            6,
+            16,
+            10
+          ]
+        },
+        "north": {
+          "texture": "#t",
+          "uv": [
+            0,
+            6,
+            16,
+            8
+          ]
+        },
+        "south": {
+          "texture": "#t",
+          "uv": [
+            0,
+            6,
+            16,
+            8
+          ]
+        },
+        "east": {
+          "texture": "#t",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        },
+        "west": {
+          "texture": "#t",
+          "uv": [
+            0,
+            0,
+            2,
+            2
+          ]
+        }
+      }
+    }
+  ]
+}

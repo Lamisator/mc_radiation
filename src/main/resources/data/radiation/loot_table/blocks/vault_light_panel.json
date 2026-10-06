@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "radiation:vault_light_panel"
+        }
+      ]
+    }
+  ],
+  "random_sequence": "radiation:blocks/vault_light_panel"
+}

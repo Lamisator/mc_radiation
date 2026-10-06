@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    "radiation:vault_wall",
+    "minecraft:gray_dye"
+  ],
+  "result": {
+    "id": "radiation:vault_floor"
+  }
+}
