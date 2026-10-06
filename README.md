@@ -12,7 +12,7 @@ clicking, and pass through stages of radiation sickness until they die at 1000 r
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.0.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.1.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -117,6 +117,10 @@ In Prism, that's **Edit → Minecraft folder → config**.
 | `geigerVolume` | 0.6 | 0 mutes the clicks |
 | `geigerClicksPerRad`, `geigerMaxClicksPerSecond` | 2.5, 60 | How busy the Geiger counter sounds |
 
+## For mod developers
+
+Other mods can use `dev.radiation.api.RadiationApi` (server side) to add and remove point sources, read the radiation at a position, and add rads to players, with or without their protection. [RedButton](https://github.com/Lamisator/mc_redbutton) uses it to irradiate ground zero after nuclear detonations.
+
 ## Building from source
 
 Requires JDK 25.
@@ -125,7 +129,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.0.0.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.1.0.jar`. `./gradlew runClient` starts a development
 client with the mod loaded.
 
 `tools/gen_assets.py` regenerates the textures and sounds (needs Pillow, numpy and soundfile, plus
