@@ -3,6 +3,7 @@ package dev.radiation.api;
 import dev.radiation.config.RadiationConfig;
 import dev.radiation.world.RadiationSources;
 import dev.radiation.world.RadiationTracker;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
@@ -62,6 +63,54 @@ public final class RadiationApi {
 		sources.sources.remove(source);
 		sources.save();
 		return true;
+	}
+
+	/**
+	 * Makes the block at {@code pos} radiate: {@code radsAtOneMetre} rads per second at one metre, falling off with the
+	 * square of the distance, absorbed by blocks in between (concrete and water better than other blocks), up to
+	 * {@code radius}. Calling it again updates the strength; 0 or less removes it. The emitter is saved with the world and
+	 * dropped automatically when the block at that position changes.
+	 */
+	public static void setEmitter(ServerLevel level, BlockPos pos, float radsAtOneMetre, float radius) {
+		RadiationSources sources = RadiationTracker.sources();
+		String dim = RadiationTracker.dimensionId(level);
+		if (radsAtOneMetre <= 0) {
+			sources.removeEmitter(RadiationSources.Emitter.key(dim, pos.getX(), pos.getY(), pos.getZ()));
+			return;
+		}
+		RadiationSources.Emitter existing = sources.emitterIndex().get(RadiationSources.Emitter.key(dim, pos.getX(), pos.getY(), pos.getZ()));
+		String block = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString();
+		if (existing != null && existing.block.equals(block)) {
+			if (Math.abs(existing.rads - radsAtOneMetre) > existing.rads * 0.002 || existing.radius != radius) {
+				existing.rads = radsAtOneMetre;
+				existing.radius = radius;
+				sources.markDirty();
+			}
+			return;
+		}
+		RadiationSources.Emitter e = new RadiationSources.Emitter();
+		e.dimension = dim;
+		e.x = pos.getX();
+		e.y = pos.getY();
+		e.z = pos.getZ();
+		e.block = block;
+		e.rads = radsAtOneMetre;
+		e.radius = radius;
+		sources.putEmitter(e);
+	}
+
+	public static void removeEmitter(ServerLevel level, BlockPos pos) {
+		setEmitter(level, pos, 0, 0);
+	}
+
+	/** A sensible cut-off radius for an emitter: where it falls below 0.01 rad/s unshielded (at most 96 blocks). */
+	public static float radiusFor(float radsAtOneMetre) {
+		return (float) Math.clamp(Math.sqrt(Math.max(0, radsAtOneMetre) / 0.01), 4, 96);
+	}
+
+	/** Fraction of radiation that gets through the blocks on the line between two points. */
+	public static double transmission(ServerLevel level, Vec3 from, Vec3 to) {
+		return RadiationTracker.transmission(level, from, to, null, RadiationConfig.get());
 	}
 
 	/** Raw radiation (before the player's protection) at a position, in rads per second. */

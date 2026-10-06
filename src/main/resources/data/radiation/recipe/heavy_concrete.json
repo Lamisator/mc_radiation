@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "C": "radiation:reinforced_concrete",
+    "R": "minecraft:raw_iron"
+  },
+  "pattern": [
+    "CRC",
+    "RCR",
+    "CRC"
+  ],
+  "result": {
+    "id": "radiation:heavy_concrete",
+    "count": 5
+  }
+}

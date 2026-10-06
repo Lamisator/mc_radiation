@@ -25,6 +25,9 @@ public class RadiationSources {
 	public List<Zone> zones = new ArrayList<>();
 	public List<PointSource> sources = new ArrayList<>();
 	public List<Barrel> barrels = new ArrayList<>();
+	/** Radiating blocks of other mods (see RadiationApi#setEmitter), kept in sync by them. */
+	public List<Emitter> emitters = new ArrayList<>();
+	private transient java.util.Map<String, Emitter> emitterIndex;
 
 	private transient Path path;
 	private transient boolean dirty;
@@ -96,6 +99,55 @@ public class RadiationSources {
 		}
 	}
 
+	/** A block that radiates: strength in rads per second at one metre, falling off with the square of the distance. */
+	public static class Emitter {
+		public String dimension;
+		public int x, y, z;
+		public String block;
+		public float rads;
+		public float radius;
+
+		public String key() {
+			return key(this.dimension, this.x, this.y, this.z);
+		}
+
+		public static String key(String dimension, int x, int y, int z) {
+			return dimension + "|" + x + "|" + y + "|" + z;
+		}
+	}
+
+	public java.util.Map<String, Emitter> emitterIndex() {
+		if (this.emitterIndex == null) {
+			this.emitterIndex = new java.util.HashMap<>();
+			if (this.emitters == null) {
+				this.emitters = new ArrayList<>();
+			}
+			for (Emitter e : this.emitters) {
+				this.emitterIndex.put(e.key(), e);
+			}
+		}
+		return this.emitterIndex;
+	}
+
+	public void putEmitter(Emitter e) {
+		Emitter old = this.emitterIndex().put(e.key(), e);
+		if (old != null) {
+			this.emitters.remove(old);
+		}
+		this.emitters.add(e);
+		this.markDirty();
+	}
+
+	public boolean removeEmitter(String key) {
+		Emitter old = this.emitterIndex().remove(key);
+		if (old != null) {
+			this.emitters.remove(old);
+			this.markDirty();
+			return true;
+		}
+		return false;
+	}
+
 	public enum Falloff {
 		/** Full strength everywhere inside the radius. */
 		CONSTANT,
@@ -136,6 +188,8 @@ public class RadiationSources {
 		if (data.zones == null) data.zones = new ArrayList<>();
 		if (data.sources == null) data.sources = new ArrayList<>();
 		if (data.barrels == null) data.barrels = new ArrayList<>();
+		if (data.emitters == null) data.emitters = new ArrayList<>();
+		data.emitters.removeIf(e -> e == null || e.dimension == null);
 		data.zones.removeIf(z -> z == null || z.name == null || z.dimension == null);
 		data.sources.removeIf(s -> s == null || s.name == null || s.dimension == null);
 		data.barrels.removeIf(b -> b == null || b.dimension == null);

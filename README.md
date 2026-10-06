@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.2.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.3.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -110,6 +110,30 @@ Version 1.2.0 adds everything you need to build a Fallout-style fallout shelter.
 | Vault Light Panel ×2 | Iron nugget, glowstone, iron nugget |
 | Neon Tube ×2 | Glass pane, glowstone dust and blue, yellow or white dye |
 
+## Concrete and shielding
+
+Version 1.3.0 makes shielding depend on the material. Every block between a radiation source and you
+absorbs a fraction of the radiation:
+
+| Material | Absorbs per block |
+|---|---|
+| **Heavy Concrete**, iron/gold/netherite blocks, obsidian, vault doors | 75 % |
+| **Reinforced Concrete**, all coloured concrete, vault walls | 55 % |
+| Other solid blocks | 35 % |
+| Water | 30 % |
+| Air, glass panes, leaves and other see-through blocks | nothing |
+
+Three blocks of heavy concrete leave about 1.6 % of the radiation; three of dirt leave 27 %.
+
+| Block | Recipe | |
+|---|---|---|
+| **Reinforced Concrete** | 8 gray concrete around 1 iron ingot → 8 | Blast resistance 1200 (like obsidian): explosions do not break it |
+| **Heavy Concrete** | 5 reinforced concrete + 4 raw iron → 5 | Blast resistance 1200, the best shielding |
+
+Both need a diamond pickaxe. They are the material for bunkers, vaults and reactor buildings (the
+Fission mod's reactors cannot blow through enough of them). The tags `radiation:shielding_concrete`
+and `radiation:shielding_heavy` let data packs and other mods add their own blocks.
+
 ## Commands
 
 `/rads` works for every player and shows your own rads and condition.
@@ -155,6 +179,7 @@ In Prism, that's **Edit → Minecraft folder → config**.
 | `updateIntervalTicks` | 10 | How often radiation is calculated (20 = once per second) |
 | `affectCreativeAndSpectator` | false | |
 | `shieldingPerBlock` | 0.35 | Fraction removed by each solid block between a point source and you |
+| `concreteShielding`, `heavyShielding`, `waterShielding` | 0.55, 0.75, 0.30 | The same for concrete, heavy shielding and water |
 | `barrelRads`, `barrelRadius` | 6, 6 | Nuclear Waste Barrel strength |
 | `protectiveItems` | hazmat pieces at 0.225 | Any item id → protection when worn. You can add other mods' armor here. |
 | `radXResistance` | 0.5 | |
@@ -178,6 +203,11 @@ In Prism, that's **Edit → Minecraft folder → config**.
 
 Other mods can use `dev.radiation.api.RadiationApi` (server side) to add and remove point sources, read the radiation at a position, and add rads to players, with or without their protection. [RedButton](https://github.com/Lamisator/mc_redbutton) uses it to irradiate ground zero after nuclear detonations.
 
+Since 1.3.0, `setEmitter(level, pos, radsAtOneMetre, radius)` makes a block radiate: its strength at one metre falls off
+with the square of the distance and is absorbed by the blocks in between. Emitters are saved with the world and dropped
+when their block changes. `transmission(level, from, to)` gives the fraction that gets through between two points.
+[Fission](https://github.com/Lamisator/mc_fission) uses these for reactor cores, spent fuel, storage and corium.
+
 ## Building from source
 
 Requires JDK 25.
@@ -186,7 +216,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.2.0.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.3.0.jar`. `./gradlew runClient` starts a development
 client with the mod loaded.
 
 `tools/gen_assets.py` regenerates the textures and sounds (needs Pillow, numpy and soundfile, plus

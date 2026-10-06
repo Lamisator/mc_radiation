@@ -84,6 +84,13 @@ public final class ModRegistry {
 					.lightLevel(state -> 5)
 					.requiresCorrectToolForDrops());
 
+	/** Blast resistance 1200 like obsidian; absorbs more radiation than ordinary blocks (tag radiation:shielding_concrete). */
+	public static final Block REINFORCED_CONCRETE = block("reinforced_concrete", Block::new, BlockBehaviour.Properties.of()
+			.mapColor(MapColor.STONE).strength(25f, 1200f).sound(SoundType.STONE).requiresCorrectToolForDrops());
+	/** Iron-ore aggregate: even denser (tag radiation:shielding_heavy). */
+	public static final Block HEAVY_CONCRETE = block("heavy_concrete", Block::new, BlockBehaviour.Properties.of()
+			.mapColor(MapColor.COLOR_GRAY).strength(30f, 1200f).sound(SoundType.STONE).requiresCorrectToolForDrops());
+
 	// --- items ---
 	public static final Item RADAWAY_ITEM = item("radaway", Item::new, new Item.Properties()
 			.stacksTo(16)
@@ -123,6 +130,11 @@ public final class ModRegistry {
 					.component(DataComponents.LORE, lore("block.radiation.nuclear_waste_barrel.desc")));
 
 	// --- creative tab ---
+	public static final Item REINFORCED_CONCRETE_ITEM = item("reinforced_concrete", props -> new BlockItem(REINFORCED_CONCRETE, props),
+			new Item.Properties().useBlockDescriptionPrefix().component(DataComponents.LORE, lore("block.radiation.reinforced_concrete.desc")));
+	public static final Item HEAVY_CONCRETE_ITEM = item("heavy_concrete", props -> new BlockItem(HEAVY_CONCRETE, props),
+			new Item.Properties().useBlockDescriptionPrefix().component(DataComponents.LORE, lore("block.radiation.heavy_concrete.desc")));
+
 	public static final CreativeModeTab TAB = Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, RadiationMod.id("radiation"),
 			FabricCreativeModeTab.builder()
 					.title(Component.translatable("itemGroup.radiation"))
@@ -136,6 +148,8 @@ public final class ModRegistry {
 						output.accept(HAZMAT_LEGGINGS);
 						output.accept(HAZMAT_BOOTS);
 						output.accept(NUCLEAR_WASTE_BARREL_ITEM);
+						output.accept(REINFORCED_CONCRETE_ITEM);
+						output.accept(HEAVY_CONCRETE_ITEM);
 						dev.radiation.vault.VaultBlocks.addToTab(output);
 					})
 					.build());

@@ -45,6 +45,12 @@ public class RadiationConfig {
 	// --- environment ---
 	/** Each solid block between a point source and the player removes this fraction of the remaining radiation. */
 	public float shieldingPerBlock = 0.35f;
+	/** Fraction absorbed per block of concrete (tag radiation:shielding_concrete: all concrete, reinforced concrete). */
+	public float concreteShielding = 0.55f;
+	/** Fraction absorbed per block of heavy shielding (tag radiation:shielding_heavy: heavy concrete, iron blocks...). */
+	public float heavyShielding = 0.75f;
+	/** Fraction absorbed per block of water. */
+	public float waterShielding = 0.30f;
 	/** Rads per second at the centre of a Nuclear Waste Barrel. */
 	public float barrelRads = 6f;
 	/** Radius in blocks of a Nuclear Waste Barrel's radiation. */
@@ -161,6 +167,9 @@ public class RadiationConfig {
 		}
 		if (protectiveItems == null) protectiveItems = new LinkedHashMap<>();
 		shieldingPerBlock = Math.clamp(shieldingPerBlock, 0f, 1f);
+		concreteShielding = Math.clamp(concreteShielding, 0f, 1f);
+		heavyShielding = Math.clamp(heavyShielding, 0f, 1f);
+		waterShielding = Math.clamp(waterShielding, 0f, 1f);
 		maxProtection = Math.clamp(maxProtection, 0f, 1f);
 		radAwayDurationSeconds = Math.max(1, radAwayDurationSeconds);
 		radXDurationSeconds = Math.max(1, radXDurationSeconds);

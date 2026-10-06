@@ -83,5 +83,9 @@
   "subtitles.radiation.vault_console_beep": "Vault console beeps",
   "subtitles.radiation.vault_alarm": "Vault alarm sounds",
   "block.radiation.vault_alarm_light": "Vault Alarm Light",
-  "block.radiation.vault_alarm_light.desc": "Spins and flashes while a vault door within 16 blocks opens or closes."
+  "block.radiation.vault_alarm_light.desc": "Spins and flashes while a vault door within 16 blocks opens or closes.",
+  "block.radiation.reinforced_concrete": "Reinforced Concrete",
+  "block.radiation.reinforced_concrete.desc": "Steel-reinforced: shrugs off explosions and absorbs 55 % of radiation per block",
+  "block.radiation.heavy_concrete": "Heavy Concrete",
+  "block.radiation.heavy_concrete.desc": "Iron-ore aggregate: blast-proof and absorbs 75 % of radiation per block"
 }

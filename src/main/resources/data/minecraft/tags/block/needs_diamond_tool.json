@@ -2,6 +2,8 @@
   "replace": false,
   "values": [
     "radiation:vault_door",
-    "radiation:vault_door_part"
+    "radiation:vault_door_part",
+    "radiation:reinforced_concrete",
+    "radiation:heavy_concrete"
   ]
 }

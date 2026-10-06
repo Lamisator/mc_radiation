@@ -17,6 +17,8 @@
     "radiation:vault_neon_white",
     "radiation:vault_sliding_door",
     "radiation:vault_door_part",
-    "radiation:vault_alarm_light"
+    "radiation:vault_alarm_light",
+    "radiation:reinforced_concrete",
+    "radiation:heavy_concrete"
   ]
 }

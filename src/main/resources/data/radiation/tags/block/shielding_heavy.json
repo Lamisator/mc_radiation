@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "radiation:heavy_concrete",
+    "radiation:vault_door",
+    "radiation:vault_door_part",
+    "radiation:vault_door_frame",
+    "minecraft:iron_block",
+    "minecraft:gold_block",
+    "minecraft:netherite_block",
+    "minecraft:obsidian",
+    "minecraft:crying_obsidian"
+  ]
+}

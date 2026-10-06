@@ -14,6 +14,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -33,6 +34,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -134,6 +136,7 @@ public final class RadiationTracker {
 		}
 		if (ticks % 100 == 0) {
 			validateBarrels(server);
+			validateEmitters(server);
 			sources.saveIfDirty();
 		}
 	}
@@ -296,6 +299,27 @@ public final class RadiationTracker {
 			}
 		}
 
+		for (RadiationSources.Emitter e : sources.emitters) {
+			if (!e.dimension.equals(dimension) || e.rads <= 0) {
+				continue;
+			}
+			double dx = e.x + 0.5 - pos.x, dy = e.y + 0.5 - pos.y, dz = e.z + 0.5 - pos.z;
+			double d2 = dx * dx + dy * dy + dz * dz;
+			if (d2 >= (double) e.radius * e.radius) {
+				continue;
+			}
+			BlockPos blockPos = new BlockPos(e.x, e.y, e.z);
+			double t2 = d2 / ((double) e.radius * e.radius);
+			double value = e.rads / Math.max(0.25, d2) * (1 - t2);
+			value *= transmission(level, Vec3.atCenterOf(blockPos), pos, blockPos, config);
+			if (value > 0.0001) {
+				total += (float) value;
+				if (breakdown != null) {
+					breakdown.add(Component.literal(String.format(Locale.ROOT, "  %s at %d %d %d: %.2f rad/s", e.block, e.x, e.y, e.z, value)));
+				}
+			}
+		}
+
 		if (config.barrelRads > 0 && config.barrelRadius > 0) {
 			for (RadiationSources.Barrel barrel : sources.barrels) {
 				if (!barrel.dimension.equals(dimension)) {
@@ -322,11 +346,60 @@ public final class RadiationTracker {
 			return 0;
 		}
 		double value = rads * falloff.apply(Math.sqrt(distanceSqr), radius);
-		if (shielded && config.shieldingPerBlock > 0 && value > 0) {
-			int blocks = solidBlocksBetween(level, center, target, ownBlock);
-			value *= Math.pow(1 - config.shieldingPerBlock, blocks);
+		if (shielded && value > 0) {
+			value *= transmission(level, center, target, ownBlock, config);
 		}
 		return (float) value;
+	}
+
+	/** Fraction of a block's radiation that is absorbed by it as a shield; 0 for air and things that do not shield. */
+	public static float absorption(BlockState state, RadiationConfig config) {
+		if (state.is(SHIELDING_HEAVY)) {
+			return config.heavyShielding;
+		}
+		if (state.is(SHIELDING_CONCRETE)) {
+			return config.concreteShielding;
+		}
+		if (state.getFluidState().is(net.minecraft.tags.FluidTags.WATER)) {
+			return state.isSolidRender() ? Math.max(config.waterShielding, config.shieldingPerBlock) : config.waterShielding;
+		}
+		return state.isSolidRender() ? config.shieldingPerBlock : 0;
+	}
+
+	public static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> SHIELDING_HEAVY =
+			net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, RadiationMod.id("shielding_heavy"));
+	public static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> SHIELDING_CONCRETE =
+			net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, RadiationMod.id("shielding_concrete"));
+
+	/** Fraction of radiation that gets through every block on the line between two points (each block counted once, 48 at most). */
+	public static double transmission(ServerLevel level, Vec3 from, Vec3 to, @Nullable BlockPos ignore, RadiationConfig config) {
+		Vec3 delta = to.subtract(from);
+		int steps = (int) Math.ceil(delta.length() * 4);
+		BlockPos targetBlock = BlockPos.containing(to);
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		long last = Long.MIN_VALUE;
+		double through = 1;
+		int count = 0;
+		for (int i = 1; i < steps; i++) {
+			double t = (double) i / steps;
+			cursor.set(from.x + delta.x * t, from.y + delta.y * t, from.z + delta.z * t);
+			long packed = cursor.asLong();
+			if (packed == last || cursor.equals(ignore) || cursor.equals(targetBlock)) {
+				continue;
+			}
+			last = packed;
+			if (!level.isLoaded(cursor)) {
+				continue;
+			}
+			float a = absorption(level.getBlockState(cursor), config);
+			if (a > 0) {
+				through *= 1 - a;
+				if (++count >= 48 || through < 1e-6) {
+					break;
+				}
+			}
+		}
+		return through;
 	}
 
 	/** Counts distinct full solid blocks on the line between two points (capped at 32). */
@@ -396,6 +469,30 @@ public final class RadiationTracker {
 		}
 		sources.barrels.add(new RadiationSources.Barrel(dimension, pos.getX(), pos.getY(), pos.getZ()));
 		sources.markDirty();
+	}
+
+	/** Forgets emitters whose block was replaced by something else (only checked where the chunk is loaded). */
+	private static void validateEmitters(MinecraftServer server) {
+		List<String> gone = new ArrayList<>();
+		for (RadiationSources.Emitter e : sources.emitters) {
+			Identifier dimensionId = Identifier.tryParse(e.dimension);
+			ServerLevel level = dimensionId == null ? null
+					: server.getLevel(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, dimensionId));
+			if (level == null) {
+				continue;
+			}
+			BlockPos p = new BlockPos(e.x, e.y, e.z);
+			if (!level.isLoaded(p)) {
+				continue;
+			}
+			String id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level.getBlockState(p).getBlock()).toString();
+			if (!id.equals(e.block)) {
+				gone.add(e.key());
+			}
+		}
+		for (String key : gone) {
+			sources.removeEmitter(key);
+		}
 	}
 
 	/** Forgets barrels whose block is gone (broken, exploded, replaced by commands...). */
