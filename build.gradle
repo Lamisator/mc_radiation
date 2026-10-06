@@ -29,6 +29,21 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// screenshot tour through a saved map that needs these mods: -PmapMods=/path/a.jar,/path/b.jar
+	if (project.hasProperty("mapMods")) {
+		localRuntime files(project.property("mapMods").toString().split(","))
+	}
+}
+
+loom {
+	runs {
+		configureEach {
+			if (name == "clientGameTest") {
+				vmArg "-Dradiation.map=" + (project.findProperty("map") ?: "")
+			}
+		}
+	}
 }
 
 processResources {

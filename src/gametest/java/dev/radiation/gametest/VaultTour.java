@@ -31,6 +31,11 @@ public class VaultTour implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		context.getInput().resizeWindow(1280, 720);
+		String map = System.getProperty("radiation.map", "");
+		if (!map.isEmpty()) {
+			this.mapTour(context, java.nio.file.Path.of(map));
+			return;
+		}
 		try (TestSingleplayerContext sp = context.worldBuilder()
 				.setUseConsistentSettings(true)
 				.adjustSettings(s -> s.getNormalPresetList().stream().filter(e -> e.preset() != null && e.preset().is(WorldPresets.FLAT)).findFirst()
@@ -111,6 +116,90 @@ public class VaultTour implements FabricClientGameTest {
 			System.out.println("[vault-tour] parts restored after closing: " + parts);
 
 			this.creativeTab(context);
+		}
+	}
+
+	/** Opens a copy of a saved world (DARC Funkstadt) and photographs Vault 73. */
+	private void mapTour(ClientGameTestContext context, java.nio.file.Path source) {
+		net.fabricmc.fabric.api.client.gametest.v1.world.TestWorldSave save;
+		try (TestSingleplayerContext sp = context.worldBuilder().create()) {
+			save = sp.getWorldSave();
+		}
+		try {
+			java.nio.file.Path dir = save.getSaveDirectory();
+			try (var walk = java.nio.file.Files.walk(dir)) {
+				walk.sorted(java.util.Comparator.reverseOrder()).filter(p -> !p.equals(dir)).forEach(p -> p.toFile().delete());
+			}
+			try (var walk = java.nio.file.Files.walk(source)) {
+				for (java.nio.file.Path p : (Iterable<java.nio.file.Path>) walk::iterator) {
+					java.nio.file.Path t = dir.resolve(source.relativize(p).toString());
+					if (java.nio.file.Files.isDirectory(p)) {
+						java.nio.file.Files.createDirectories(t);
+					} else {
+						java.nio.file.Files.copy(p, t);
+					}
+				}
+			}
+		} catch (java.io.IOException e) {
+			throw new RuntimeException(e);
+		}
+		final int zd = -453;
+		final BlockPos door = new BlockPos(-400, 13, zd);
+		try (TestSingleplayerContext sp = save.open()) {
+			sp.getConnection().waitForChunksRender();
+			for (String c : new String[]{"time set 6000", "weather clear", "gamemode creative @a", "effect give @a minecraft:night_vision infinite 0 true"}) {
+				sp.getServer().runCommand(c);
+			}
+			context.runOnClient(mc -> mc.options.renderDistance().set(10));
+			this.look(context, sp, -388.5, 70, zd + 6.5, new Vec3(-404.5, 72.5, zd + 0.5));
+			context.waitTicks(40);
+			this.shot(context, "map_portal");
+			this.look(context, sp, -415.5, 71, zd + 0.5, new Vec3(-440.5, 70, zd + 0.5));
+			this.shot(context, "map_upper_tunnel");
+			this.look(context, sp, -430.5, 71, zd + 1.5, new Vec3(-440.5, 66, zd - 1.5));
+			this.shot(context, "map_stairs_top");
+			this.look(context, sp, -437.5, 42, zd - 1.5, new Vec3(-430.5, 41, zd + 1.5));
+			this.shot(context, "map_stairs_mid");
+			this.look(context, sp, -425.5, 11, zd + 0.5, Vec3.atCenterOf(door));
+			this.shot(context, "map_lower_tunnel");
+			this.look(context, sp, -405.5, 11, zd - 2.5, Vec3.atCenterOf(door));
+			this.shot(context, "map_door_closed");
+			sp.getServer().runOnServer(server -> ((VaultDoorBlockEntity) server.overworld().getBlockEntity(door)).setOpen(true));
+			context.waitTicks(30);
+			this.shot(context, "map_door_alarm");
+			this.look(context, sp, -387.5, 11, zd + 5.5, new Vec3(-398.5, 13.5, zd + 0.5));
+			context.waitTicks(30);
+			this.shot(context, "map_gear_room_arm");
+			context.waitTicks(130);
+			this.shot(context, "map_gear_room_open");
+			this.look(context, sp, -405.5, 11, zd - 2.5, new Vec3(-392.5, 12.5, zd + 0.5));
+			this.shot(context, "map_door_open");
+			this.look(context, sp, -379.5, 11, zd + 8.5, new Vec3(-366.5, 3, zd - 4.5));
+			this.shot(context, "map_atrium_balcony");
+			this.look(context, sp, -359.5, 2, zd + 8.5, new Vec3(-375.5, 7, zd - 6.5));
+			this.shot(context, "map_atrium_floor");
+			this.look(context, sp, -369.5, 11, zd - 12.5, new Vec3(-376.5, 12, zd - 16.5));
+			this.shot(context, "map_overseer");
+			this.look(context, sp, -355.5, 2, zd + 7.5, new Vec3(-345.5, 2.5, zd - 6.5));
+			this.shot(context, "map_cafeteria");
+			this.look(context, sp, -369.5, 2, zd - 12.5, new Vec3(-376.5, 2, zd - 18.5));
+			this.shot(context, "map_clinic");
+			this.look(context, sp, -390.5, 2, zd + 12.5, new Vec3(-350.5, 3, zd + 13.5));
+			this.shot(context, "map_quarters_corridor");
+			this.look(context, sp, -387.5, 2, zd + 15.5, new Vec3(-390.5, 2, zd + 19.5));
+			this.shot(context, "map_quarters_room");
+			this.look(context, sp, -381.5, 2, zd + 0.5, new Vec3(-393.5, -7, zd + 0.5));
+			this.shot(context, "map_stairwell");
+			this.look(context, sp, -392.5, -7, zd + 1.5, new Vec3(-350.5, -6, zd + 0.5));
+			this.shot(context, "map_l3_corridor");
+			this.look(context, sp, -370.5, -7, zd - 3.5, new Vec3(-380.5, -5, zd - 9.5));
+			this.shot(context, "map_reactor");
+			this.look(context, sp, -371.5, -7, zd + 3.5, new Vec3(-385.5, -7, zd + 11.5));
+			this.shot(context, "map_water");
+			this.look(context, sp, -347.5, -7, zd + 3.5, new Vec3(-360.5, -7, zd + 12.5));
+			this.shot(context, "map_hydroponics");
+			this.look(context, sp, -347.5, -7, zd - 3.5, new Vec3(-360.5, -6, zd - 12.5));
+			this.shot(context, "map_storage");
 		}
 	}
 

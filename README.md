@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.1.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.2.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -54,6 +54,61 @@ Protection from armor and Rad-X stacks, capped at 95% by default.
 
 Solid blocks between you and a **point source** absorb radiation. By default each block removes 35%,
 so hiding behind a thick wall helps. Zones are uniform and can't be shielded against.
+
+## Vault blocks
+
+Version 1.2.0 adds everything you need to build a Fallout-style fallout shelter.
+
+![A Vault Door numbered 73 in its frame, with hazard stripes and a Vault Door Console beside it](docs/img/vault_door.jpg)
+
+| Block | What it does |
+|-------|--------------|
+| **Vault Door** | The big cog door for a round 5×5 opening. Place it in the middle of the opening, facing the outside. A **screw arm** behind it extends, screws into the cog, pulls it back into the vault and lets go; the cog then rolls aside. Closing runs the other way. An alarm klaxon sounds the whole time. It is blast-proof. |
+| **Vault Door Console** | A pedestal with a big button: opens or closes the nearest vault door within 16 blocks. A vault door also toggles on a redstone pulse. |
+| **Vault Alarm Light** | A rotating amber warning light. It spins and lights up while a vault door within 16 blocks opens or closes. Mount it on any wall, floor or ceiling. |
+| **Vault Sliding Door** | A two-block steel door that slides up into the wall above it. Doors standing side by side in the same wall open together, so you can build wider doorways. Opens by hand or redstone. |
+| **Vault Wall Panel**, **Striped Vault Wall Panel**, **Vault Pipe Panel** | Riveted steel walls: plain, with the blue and yellow stripe, and with pipes. |
+| **Vault Floor Plate**, **Vault Floor Grate** | Tread plate and see-through grating. |
+| **Hazard Stripes**, **Vault Door Frame** | Yellow and black warning stripes; heavy frame blocks for the door opening. |
+| **Vault Light Panel**, **Blue / Yellow / White Neon Tube** | Flat light panels and neon tubes for walls, floors and ceilings. |
+
+![The screw arm waiting behind a closed vault door](docs/img/vault_arm_idle.jpg)
+
+![The arm's screw head has engaged the door's centre](docs/img/vault_arm_screwing.jpg)
+
+![The arm pulls the door back into the vault](docs/img/vault_arm_pulling.jpg)
+
+![The door rolls aside while the arm parks](docs/img/vault_door_rolling.jpg)
+
+**Room the door needs.** The door is 5 blocks across. Behind it (inside the vault) keep the space clear: **7 blocks deep** for the screw arm, **4 blocks above the door's centre** for the arm's ceiling mount, and **8 blocks to the side** the door rolls to. Corners of the 5×5 square stay solid; use Vault Door Frame blocks there.
+
+**Number and roll direction.** Sneak and use the door to set the number painted on it (0 to 999) and which side it rolls to. Only operators and players in creative mode can do this.
+
+![Setting the door's number](docs/img/vault_door_settings.jpg)
+
+![Alarm lights sweep amber beams while the door opens](docs/img/vault_alarm_lights.jpg)
+
+![A vault room with light panels, neon tubes, striped walls, a floor grate and sliding doors](docs/img/vault_room.jpg)
+
+![A double sliding door halfway up](docs/img/vault_sliding_door.jpg)
+
+### Vault recipes
+
+| Item | Recipe |
+|------|--------|
+| Vault Door | 8 iron blocks around a redstone block |
+| Vault Door Console | Stone button on top, glass pane / redstone / glass pane, 3 iron ingots |
+| Vault Alarm Light | Glowstone dust, orange stained glass pane / redstone / orange stained glass pane, iron ingot |
+| Vault Sliding Door ×2 | 5 iron ingots and a piston (iron, iron / piston, iron / iron, iron) |
+| Vault Wall Panel ×8 | 8 smooth stone around an iron ingot |
+| Striped Vault Wall Panel ×2 | 2 wall panels, yellow dye, blue dye |
+| Vault Pipe Panel | Wall panel and a copper ingot |
+| Vault Floor Plate | Wall panel and grey dye |
+| Vault Floor Grate ×4 | 4 iron bars |
+| Hazard Stripes | Wall panel, yellow dye, black dye |
+| Vault Door Frame ×4 | 2 iron ingots and 2 obsidian, diagonally |
+| Vault Light Panel ×2 | Iron nugget, glowstone, iron nugget |
+| Neon Tube ×2 | Glass pane, glowstone dust and blue, yellow or white dye |
 
 ## Commands
 
@@ -131,7 +186,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.1.0.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.2.0.jar`. `./gradlew runClient` starts a development
 client with the mod loaded.
 
 `tools/gen_assets.py` regenerates the textures and sounds (needs Pillow, numpy and soundfile, plus
