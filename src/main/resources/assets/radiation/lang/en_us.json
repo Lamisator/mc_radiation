@@ -80,5 +80,8 @@
   "subtitles.radiation.vault_door_close": "Vault door closes",
   "subtitles.radiation.sliding_door_open": "Sliding door opens",
   "subtitles.radiation.sliding_door_close": "Sliding door closes",
-  "subtitles.radiation.vault_console_beep": "Vault console beeps"
+  "subtitles.radiation.vault_console_beep": "Vault console beeps",
+  "subtitles.radiation.vault_alarm": "Vault alarm sounds",
+  "block.radiation.vault_alarm_light": "Vault Alarm Light",
+  "block.radiation.vault_alarm_light.desc": "Spins and flashes while a vault door within 16 blocks opens or closes."
 }

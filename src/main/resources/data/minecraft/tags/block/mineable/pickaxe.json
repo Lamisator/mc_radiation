@@ -16,6 +16,7 @@
     "radiation:vault_neon_yellow",
     "radiation:vault_neon_white",
     "radiation:vault_sliding_door",
-    "radiation:vault_door_part"
+    "radiation:vault_door_part",
+    "radiation:vault_alarm_light"
   ]
 }

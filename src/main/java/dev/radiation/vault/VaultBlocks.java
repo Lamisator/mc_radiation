@@ -40,6 +40,7 @@ public final class VaultBlocks {
 	public static final SoundEvent SLIDING_DOOR_OPEN = sound("sliding_door_open");
 	public static final SoundEvent SLIDING_DOOR_CLOSE = sound("sliding_door_close");
 	public static final SoundEvent VAULT_CONSOLE_BEEP = sound("vault_console_beep");
+	public static final SoundEvent VAULT_ALARM = sound("vault_alarm");
 
 	private static BlockBehaviour.Properties steel() {
 		return BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(5.0F, 9.0F).sound(SoundType.METAL).requiresCorrectToolForDrops();
@@ -71,6 +72,9 @@ public final class VaultBlocks {
 	public static final Block NEON_BLUE = block("vault_neon_blue", VaultLampBlock::tube, lamp(13));
 	public static final Block NEON_YELLOW = block("vault_neon_yellow", VaultLampBlock::tube, lamp(13));
 	public static final Block NEON_WHITE = block("vault_neon_white", VaultLampBlock::tube, lamp(14));
+	public static final Block ALARM_LIGHT = block("vault_alarm_light", VaultAlarmLightBlock::new, BlockBehaviour.Properties.of()
+			.mapColor(MapColor.COLOR_ORANGE).strength(1.0F).sound(SoundType.METAL).noOcclusion()
+			.lightLevel(state -> state.getValue(VaultAlarmLightBlock.LIT) ? 12 : 0));
 
 	private static BlockBehaviour.Properties lamp(int light) {
 		return BlockBehaviour.Properties.of().mapColor(MapColor.QUARTZ).strength(0.6F).sound(SoundType.GLASS).noOcclusion().noCollision()
@@ -81,6 +85,7 @@ public final class VaultBlocks {
 	public static final Item VAULT_DOOR_ITEM = blockItem(VAULT_DOOR, Rarity.EPIC, "block.radiation.vault_door.desc");
 	public static final Item VAULT_CONSOLE_ITEM = blockItem(VAULT_CONSOLE, Rarity.UNCOMMON, "block.radiation.vault_console.desc");
 	public static final Item SLIDING_DOOR_ITEM = blockItem(SLIDING_DOOR, Rarity.COMMON, "block.radiation.vault_sliding_door.desc");
+	public static final Item ALARM_LIGHT_ITEM = blockItem(ALARM_LIGHT, Rarity.COMMON, "block.radiation.vault_alarm_light.desc");
 	static {
 		for (Block b : List.of(VAULT_WALL, VAULT_WALL_STRIPE, VAULT_WALL_PIPES, VAULT_FLOOR, VAULT_GRATE, VAULT_HAZARD, VAULT_DOOR_FRAME,
 				VAULT_LIGHT_PANEL, NEON_BLUE, NEON_YELLOW, NEON_WHITE)) {
@@ -93,6 +98,9 @@ public final class VaultBlocks {
 			RadiationMod.id("vault_door"), FabricBlockEntityTypeBuilder.create(VaultDoorBlockEntity::new, VAULT_DOOR).build());
 	public static final BlockEntityType<SlidingDoorBlockEntity> SLIDING_DOOR_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
 			RadiationMod.id("vault_sliding_door"), FabricBlockEntityTypeBuilder.create(SlidingDoorBlockEntity::new, SLIDING_DOOR).build());
+
+	public static final BlockEntityType<VaultAlarmLightBlockEntity> ALARM_LIGHT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+			RadiationMod.id("vault_alarm_light"), FabricBlockEntityTypeBuilder.create(VaultAlarmLightBlockEntity::new, ALARM_LIGHT).build());
 
 	public static void init() {
 	}

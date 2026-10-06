@@ -43,6 +43,8 @@ public class VaultDoorBlockEntity extends BlockEntity {
 	private int progress;
 	private int prevProgress;
 	private boolean ticked;
+	/** Client only: whether the looping alarm for this door is currently playing. */
+	public boolean alarmPlaying;
 
 	public VaultDoorBlockEntity(BlockPos pos, BlockState state) {
 		super(VaultBlocks.VAULT_DOOR_ENTITY, pos, state);
@@ -58,6 +60,11 @@ public class VaultDoorBlockEntity extends BlockEntity {
 
 	public boolean isOpen() {
 		return this.open;
+	}
+
+	/** True while the door is opening or closing. */
+	public boolean isMoving() {
+		return this.open ? this.progress < TOTAL_TICKS : this.progress > 0;
 	}
 
 	public Direction facing() {
@@ -90,12 +97,17 @@ public class VaultDoorBlockEntity extends BlockEntity {
 			this.level.setBlock(this.worldPosition, state.setValue(VaultDoorBlock.OPEN, true), Block.UPDATE_ALL);
 		}
 		this.level.playSound(null, this.worldPosition, open ? VaultBlocks.VAULT_DOOR_OPEN : VaultBlocks.VAULT_DOOR_CLOSE, SoundSource.BLOCKS, 3.0F, 1.0F);
+		VaultAlarmLightBlock.setNearby(this.level, this.worldPosition, true);
 		this.sync();
 	}
 
 	public static void tick(Level level, BlockPos pos, BlockState state, VaultDoorBlockEntity door) {
 		door.ticked = true;
 		door.prevProgress = door.progress;
+		if (level.isClientSide() && door.isMoving() && !door.alarmPlaying) {
+			door.alarmPlaying = true;
+			dev.radiation.util.ClientHooks.vaultAlarm.accept(door);
+		}
 		if (door.open && door.progress < TOTAL_TICKS) {
 			door.progress++;
 		} else if (!door.open && door.progress > 0) {
@@ -108,6 +120,7 @@ public class VaultDoorBlockEntity extends BlockEntity {
 		}
 		if (!level.isClientSide() && door.progress != door.prevProgress && (door.progress == TOTAL_TICKS || door.progress == 0)) {
 			door.setChanged();
+			VaultAlarmLightBlock.setNearby(level, pos, false);
 		}
 	}
 

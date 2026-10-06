@@ -3,7 +3,9 @@ package dev.radiation.client;
 import dev.radiation.RadiationMod;
 import dev.radiation.network.RadiationSettingsPayload;
 import dev.radiation.network.RadiationStatusPayload;
+import dev.radiation.client.vault.AlarmLightRenderer;
 import dev.radiation.client.vault.SlidingDoorRenderer;
+import dev.radiation.client.vault.VaultAlarmSound;
 import dev.radiation.client.vault.VaultDoorRenderer;
 import dev.radiation.client.vault.VaultDoorScreen;
 import dev.radiation.util.ClientHooks;
@@ -31,5 +33,7 @@ public class RadiationClient implements ClientModInitializer {
 		BlockEntityRendererRegistry.register(VaultBlocks.VAULT_DOOR_ENTITY, VaultDoorRenderer::new);
 		BlockEntityRendererRegistry.register(VaultBlocks.SLIDING_DOOR_ENTITY, SlidingDoorRenderer::new);
 		ClientHooks.openVaultDoorSettings = door -> Minecraft.getInstance().gui.setScreen(new VaultDoorScreen(door));
+		ClientHooks.vaultAlarm = door -> Minecraft.getInstance().getSoundManager().play(new VaultAlarmSound(door));
+		BlockEntityRendererRegistry.register(VaultBlocks.ALARM_LIGHT_ENTITY, AlarmLightRenderer::new);
 	}
 }

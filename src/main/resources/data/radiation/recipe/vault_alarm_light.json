@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "G": "minecraft:glowstone_dust",
+    "O": "minecraft:orange_stained_glass_pane",
+    "R": "minecraft:redstone",
+    "I": "minecraft:iron_ingot"
+  },
+  "pattern": [
+    " G ",
+    "ORO",
+    " I "
+  ],
+  "result": {
+    "id": "radiation:vault_alarm_light"
+  }
+}

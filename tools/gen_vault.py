@@ -398,8 +398,38 @@ for name, tube in [("vault_light_panel", False), ("vault_neon_blue", True), ("va
     blockstate(name, {"variants": {f"facing={f}": {"model": f"radiation:block/{name}", **r} for f, r in ROT.items()}})
     item_def(name, f"radiation:block/{name}")
 
+for lit in (False, True):
+    img = Image.new("RGBA", (16, 16), (255, 150, 20, 255) if lit else (150, 90, 20, 255))
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, 15, 15], outline=(255, 210, 120, 255) if lit else (110, 66, 16, 255))
+    for x in range(2, 15, 4):
+        d.line([(x, 1), (x, 14)], fill=(255, 220, 140, 255) if lit else (170, 110, 30, 255))
+    save(img, "block/vault_alarm_light_on" if lit else "block/vault_alarm_light")
+base = panel(STEEL_DARK, BLACK, 40, rivets=False)
+save(base, "block/vault_alarm_light_base")
+for lit in (False, True):
+    name = "vault_alarm_light_on" if lit else "vault_alarm_light"
+    model(name, {"parent": "minecraft:block/block", "ambientocclusion": False,
+                 "textures": {"base": "radiation:block/vault_alarm_light_base", "dome": f"radiation:block/{name}",
+                              "particle": f"radiation:block/{name}"},
+                 "elements": [
+                     {"from": [4, 0, 4], "to": [12, 2, 12], "faces": {s: {"texture": "#base"} for s in ["north", "south", "east", "west", "up", "down"]}},
+                     {"from": [5, 2, 5], "to": [11, 7, 11], "faces": {s: {"texture": "#dome"} for s in ["north", "south", "east", "west", "up"]}},
+                     {"from": [7, 7, 7], "to": [9, 8, 9], "faces": {s: {"texture": "#base"} for s in ["north", "south", "east", "west", "up"]}}]})
+blockstate("vault_alarm_light", {"variants": {f"facing={f},lit={str(l).lower()}": {"model": "radiation:block/" + ("vault_alarm_light_on" if l else "vault_alarm_light"), **r}
+                                              for f, r in ROT.items() for l in (False, True)}})
+item_def("vault_alarm_light", "radiation:block/vault_alarm_light")
+beam = Image.new("RGBA", (32, 16))
+px = beam.load()
+for x in range(32):
+    for y in range(16):
+        a = (1 - x / 31) ** 1.5 * (1 - abs(y - 7.5) / 8) ** 0.5
+        px[x, y] = (255, 170, 40, int(200 * a))
+beam.save(f"{A}/textures/entity/vault_alarm_beam.png")
+
 # ---------------------------------------------------------------- loot, tags, recipes
-DROPS = CUBES + ["vault_grate", "vault_door", "vault_console", "vault_light_panel", "vault_neon_blue", "vault_neon_yellow", "vault_neon_white"]
+DROPS = CUBES + ["vault_grate", "vault_door", "vault_console", "vault_light_panel", "vault_neon_blue", "vault_neon_yellow", "vault_neon_white",
+                 "vault_alarm_light"]
 for n in DROPS:
     write(f"{D}/loot_table/blocks/{n}.json", {"type": "minecraft:block", "pools": [{"rolls": 1, "condition": {"type": "minecraft:survives_explosion"},
         "entries": [{"type": "minecraft:item", "name": f"radiation:{n}"}]}], "random_sequence": f"radiation:blocks/{n}"})
@@ -440,6 +470,8 @@ shaped("vault_grate", ["BB", "BB"], {"B": "minecraft:iron_bars"}, 4)
 shapeless("vault_hazard_stripes", ["radiation:vault_wall", "minecraft:yellow_dye", "minecraft:black_dye"])
 shaped("vault_door_frame", ["IO", "OI"], {"I": "minecraft:iron_ingot", "O": "minecraft:obsidian"}, 4)
 shaped("vault_light_panel", ["NGN"], {"N": "minecraft:iron_nugget", "G": "minecraft:glowstone"}, 2, "redstone")
+shaped("vault_alarm_light", [" G ", "ORO", " I "], {"G": "minecraft:glowstone_dust", "O": "minecraft:orange_stained_glass_pane",
+                                                    "R": "minecraft:redstone", "I": "minecraft:iron_ingot"}, category="redstone")
 for color in ["blue", "yellow", "white"]:
     shapeless(f"vault_neon_{color}", ["minecraft:glass_pane", "minecraft:glowstone_dust", f"minecraft:{color}_dye"], 2, "redstone")
 
@@ -480,6 +512,9 @@ lang.update({
     "subtitles.radiation.sliding_door_open": "Sliding door opens",
     "subtitles.radiation.sliding_door_close": "Sliding door closes",
     "subtitles.radiation.vault_console_beep": "Vault console beeps",
+    "subtitles.radiation.vault_alarm": "Vault alarm sounds",
+    "block.radiation.vault_alarm_light": "Vault Alarm Light",
+    "block.radiation.vault_alarm_light.desc": "Spins and flashes while a vault door within 16 blocks opens or closes.",
 })
 write(langp, lang)
 
@@ -554,11 +589,7 @@ def vault_door(closing):
     mech[i:] += np.sin(2 * np.pi * 60 * np.arange(m) / SR) * np.exp(-np.arange(m) / (0.15 * SR)) * 1.5
     if closing:
         mech = mech[::-1]
-    # klaxon over the first 2.5 s either way
-    tone = np.where((t * 2.5) % 1 < 0.5, 420.0, 330.0)
-    phase = np.cumsum(tone) / SR * 2 * np.pi
-    alarm = (t < 2.5) * 0.3 * np.sign(np.sin(phase)) * (0.6 + 0.4 * np.sin(2 * np.pi * 5 * t))
-    return (mech + alarm) * env(n, 0.01, 0.3)
+    return mech * env(n, 0.01, 0.3)
 
 
 def sliding(opening):
@@ -580,7 +611,24 @@ def beep():
     return x * 0.5
 
 
+def alarm_loop():
+    # a seamless 1.6 s loop: two rising klaxon blasts ("aah-OOH") with a buzzing sawtooth timbre
+    n = int(1.6 * SR)
+    t = np.arange(n) / SR
+    out = np.zeros(n)
+    for start in (0.0, 0.8):
+        local = t - start
+        on = (local >= 0) & (local < 0.62)
+        f = 260 + 140 * np.clip(local / 0.35, 0, 1)
+        ph = np.cumsum(np.where(on, f, 0)) / SR
+        saw = 2 * (ph % 1) - 1
+        e = np.clip(local / 0.03, 0, 1) * np.clip((0.62 - local) / 0.06, 0, 1)
+        out += on * saw * e * (0.7 + 0.3 * np.sin(2 * np.pi * 31 * t))
+    return lowpass(out, 0.35)
+
+
 os.makedirs(f"{A}/sounds", exist_ok=True)
+ogg("vault_alarm", alarm_loop(), 0.8)
 ogg("vault_door_open", vault_door(False))
 ogg("vault_door_close", vault_door(True))
 ogg("sliding_door_open", sliding(True))
@@ -588,8 +636,8 @@ ogg("sliding_door_close", sliding(False))
 ogg("vault_console_beep", beep(), 0.6)
 sp = f"{A}/sounds.json"
 sounds = json.load(open(sp))
-for name in ["vault_door_open", "vault_door_close", "sliding_door_open", "sliding_door_close", "vault_console_beep"]:
-    sounds[name] = {"sounds": [{"name": f"radiation:{name}", "attenuation_distance": 48 if name.startswith("vault_door") else 16}],
+for name in ["vault_door_open", "vault_door_close", "sliding_door_open", "sliding_door_close", "vault_console_beep", "vault_alarm"]:
+    sounds[name] = {"sounds": [{"name": f"radiation:{name}", "attenuation_distance": 64 if name == "vault_alarm" else 48 if name.startswith("vault_door") else 16}],
                     "subtitle": f"subtitles.radiation.{name}"}
 write(sp, sounds)
 print("vault assets written")

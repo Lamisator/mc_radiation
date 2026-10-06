@@ -68,6 +68,8 @@ public class VaultTour implements FabricClientGameTest {
 			sp.getServer().runOnServer(server -> ((VaultDoorBlockEntity) server.overworld().getBlockEntity(door)).setOpen(true));
 			context.waitTicks(15);
 			this.shot(context, "vault_arm_extending");
+			boolean alarm = context.computeOnClient(mc -> ((VaultDoorBlockEntity) mc.level.getBlockEntity(door)).alarmPlaying);
+			System.out.println("[vault-tour] alarm loop playing while opening: " + alarm);
 			context.waitTicks(22);
 			this.shot(context, "vault_arm_screwing");
 			context.waitTicks(30);
@@ -101,7 +103,9 @@ public class VaultTour implements FabricClientGameTest {
 			// closing
 			sp.getServer().runOnServer(server -> ((VaultDoorBlockEntity) server.overworld().getBlockEntity(door)).setOpen(false));
 			this.look(context, sp, X + 6.5, g + 1, Z + 8.5, Vec3.atCenterOf(door));
-			context.waitTicks(190);
+			context.waitTicks(20);
+			this.shot(context, "vault_alarm_lights");
+			context.waitTicks(170);
 			this.shot(context, "vault_door_closed_again");
 			boolean parts = sp.getServer().computeOnServer(server -> server.overworld().getBlockState(door.above(2)).is(VaultBlocks.VAULT_DOOR_PART));
 			System.out.println("[vault-tour] parts restored after closing: " + parts);
@@ -167,6 +171,12 @@ public class VaultTour implements FabricClientGameTest {
 		level.setBlock(new BlockPos(X + 3, g + 3, Z - 14), VaultBlocks.NEON_WHITE.defaultBlockState()
 				.setValue(VaultLampBlock.FACING, Direction.SOUTH), Block.UPDATE_ALL);
 		level.setBlock(new BlockPos(X - 6, g, Z - 12), ModRegistry.NUCLEAR_WASTE_BARREL.defaultBlockState(), Block.UPDATE_ALL);
+		for (int dx : new int[]{-4, 4}) {
+			level.setBlock(new BlockPos(X + dx, g + 6, Z + 1), VaultBlocks.ALARM_LIGHT.defaultBlockState()
+					.setValue(dev.radiation.vault.VaultAlarmLightBlock.FACING, Direction.SOUTH), Block.UPDATE_ALL);
+			level.setBlock(new BlockPos(X + dx, g + 6, Z - 1), VaultBlocks.ALARM_LIGHT.defaultBlockState()
+					.setValue(dev.radiation.vault.VaultAlarmLightBlock.FACING, Direction.NORTH), Block.UPDATE_ALL);
+		}
 		return g;
 	}
 

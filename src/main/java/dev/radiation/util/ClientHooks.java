@@ -10,6 +10,10 @@ public final class ClientHooks {
 	public static Consumer<VaultDoorBlockEntity> openVaultDoorSettings = door -> {
 	};
 
+	/** Starts the looping alarm of a moving vault door; it stops by itself when the door stops. */
+	public static Consumer<VaultDoorBlockEntity> vaultAlarm = door -> {
+	};
+
 	private ClientHooks() {
 	}
 }

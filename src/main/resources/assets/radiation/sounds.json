@@ -58,5 +58,14 @@
       }
     ],
     "subtitle": "subtitles.radiation.vault_console_beep"
+  },
+  "vault_alarm": {
+    "sounds": [
+      {
+        "name": "radiation:vault_alarm",
+        "attenuation_distance": 64
+      }
+    ],
+    "subtitle": "subtitles.radiation.vault_alarm"
   }
 }
