@@ -41,6 +41,9 @@ loom {
 		configureEach {
 			if (name == "clientGameTest") {
 				vmArg "-Dradiation.map=" + (project.findProperty("map") ?: "")
+				if (project.hasProperty("kioskOnly")) {
+					vmArg "-Dradiation.kioskOnly=true"
+				}
 			}
 		}
 	}

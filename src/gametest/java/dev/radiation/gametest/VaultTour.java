@@ -154,6 +154,17 @@ public class VaultTour implements FabricClientGameTest {
 			this.look(context, sp, -388.5, 70, zd + 6.5, new Vec3(-404.5, 72.5, zd + 0.5));
 			context.waitTicks(40);
 			this.shot(context, "map_portal");
+			this.look(context, sp, -395.5, 70, -454.5, new Vec3(-395.5, 72, -459.5));
+			this.shot(context, "map_vault_kiosk");
+			this.look(context, sp, -136.5, 70, -301.5, new Vec3(-136.5, 72, -305.5));
+			context.waitTicks(20);
+			this.shot(context, "map_marconi_kiosk");
+			this.pressAndReport(context, sp, new BlockPos(-133, 71, -305), "Marconi-Park -> Vault 73");
+			this.shot(context, "map_arrival_vault");
+			this.pressAndReport(context, sp, new BlockPos(-399, 71, -459), "Vault 73 -> Funkstadt");
+			if (System.getProperty("radiation.kioskOnly") != null) {
+				return;
+			}
 			this.look(context, sp, -415.5, 71, zd + 0.5, new Vec3(-440.5, 70, zd + 0.5));
 			this.shot(context, "map_upper_tunnel");
 			this.look(context, sp, -430.5, 71, zd + 1.5, new Vec3(-440.5, 66, zd - 1.5));
@@ -201,6 +212,20 @@ public class VaultTour implements FabricClientGameTest {
 			this.look(context, sp, -347.5, -7, zd - 3.5, new Vec3(-360.5, -6, zd - 12.5));
 			this.shot(context, "map_storage");
 		}
+	}
+
+	/** Presses a teleporter button as the test player and prints where the player ends up. */
+	private void pressAndReport(ClientGameTestContext context, TestSingleplayerContext sp, BlockPos button, String label) {
+		this.look(context, sp, button.getX() + 0.5, button.getY() - 1, button.getZ() + 2.5, Vec3.atCenterOf(button));
+		sp.getServer().runOnServer(server -> {
+			ServerPlayer player = server.getPlayerList().getPlayers().get(0);
+			ServerLevel level = server.overworld();
+			level.getBlockState(button).useWithoutItem(level, player,
+					new net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(button), Direction.SOUTH, button, false));
+		});
+		context.waitTicks(20);
+		String where = sp.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().get(0).blockPosition().toShortString());
+		System.out.println("[vault-tour] " + label + ": player now at " + where);
 	}
 
 	/** Builds the vault entrance wall (facing south, +z) and a small room behind it; returns the floor level. */
