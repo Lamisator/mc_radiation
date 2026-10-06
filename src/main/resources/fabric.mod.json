@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "radiation",
+	"version": "${version}",
+	"name": "Radiation",
+	"description": "Fallout-style radiation: irradiated zones and sources, a rad meter, radiation sickness, RadAway, Rad-X, hazmat suits and a Geiger counter.",
+	"authors": [
+		"Marius Kloeck"
+	],
+	"license": "MIT",
+	"icon": "assets/radiation/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"dev.radiation.RadiationMod"
+		],
+		"client": [
+			"dev.radiation.client.RadiationClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

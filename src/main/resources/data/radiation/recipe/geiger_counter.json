@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "C": "minecraft:copper_ingot",
+    "R": "minecraft:redstone",
+    "G": "minecraft:glass_pane",
+    "Y": "minecraft:yellow_dye"
+  },
+  "pattern": [
+    "  C",
+    "IGI",
+    "YRY"
+  ],
+  "result": {
+    "id": "radiation:geiger_counter"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "geiger_click": {
+    "sounds": [
+      "radiation:geiger_click1",
+      "radiation:geiger_click2",
+      "radiation:geiger_click3",
+      "radiation:geiger_click4"
+    ],
+    "subtitle": "subtitles.radiation.geiger_click"
+  },
+  "rad_warning": {
+    "sounds": [
+      "radiation:rad_warning"
+    ],
+    "subtitle": "subtitles.radiation.rad_warning"
+  }
+}

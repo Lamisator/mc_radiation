@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "radiation:block/nuclear_waste_barrel"
+    }
+  }
+}

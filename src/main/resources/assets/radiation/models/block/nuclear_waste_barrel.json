@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "side": "radiation:block/nuclear_waste_barrel_side",
+    "top": "radiation:block/nuclear_waste_barrel_top",
+    "bottom": "radiation:block/nuclear_waste_barrel_bottom"
+  }
+}

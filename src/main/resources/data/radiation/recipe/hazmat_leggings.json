@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {"L": "minecraft:leather", "Y": "minecraft:yellow_wool"},
+  "pattern": ["LYL", "Y Y", "L L"],
+  "result": {
+    "id": "radiation:hazmat_leggings"
+  }
+}
