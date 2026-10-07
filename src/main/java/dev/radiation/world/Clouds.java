@@ -114,9 +114,19 @@ public final class Clouds {
 		for (Cloud c : state.clouds) c.id = ++nextId;
 		if (Double.isNaN(state.windTowards)) Wind.release(); else Wind.fix(state.windTowards, state.windSpeed);
 		CELLS.clear();
+		long now = server.overworld().getGameTime();
 		for (RadiationSources.PointSource s : RadiationTracker.sources().sources) {
+			if (s.name.startsWith("nuke_") && s.lifetimeTicks == 0) {
+				nuclear(s, now);
+				RadiationTracker.sources().markDirty();
+			}
 			if (s.name.startsWith("fallout")) {
 				CELLS.put(cell(s.dimension, s.x, s.z), s.name);
+				if (s.lifetimeTicks == 0 && s.longHalfLifeTicks == 0) {
+					// fallout from before 1.9.0: from now on it fades away too
+					lasting(s);
+					RadiationTracker.sources().markDirty();
+				}
 			}
 		}
 		SEEING.clear();
@@ -231,7 +241,10 @@ public final class Clouds {
 		dev.radiation.config.RadiationConfig.Clouds cfg = dev.radiation.config.RadiationConfig.get().clouds;
 		double radius = c.r0 + cfg.spreadPerBlock * c.travelled;
 		double onGround = c.activity * (c.r0 / radius) * (c.r0 / radius);
-		if (onGround < cfg.fadedRads || c.age > cfg.maxAgeMinutes * 60L * 20) {
+		// it thins out over the last quarter of its way and is gone after maxTravelBlocks
+		double left = cfg.maxTravelBlocks - c.travelled;
+		onGround *= Math.clamp(left / (0.25 * cfg.maxTravelBlocks), 0, 1);
+		if (left <= 0 || onGround < cfg.fadedRads || c.age > cfg.maxAgeMinutes * 60L * 20) {
 			return false;
 		}
 		double height = Math.max(0, c.y - c.ground);
@@ -273,6 +286,7 @@ public final class Clouds {
 		if (s != null) {
 			s.rads = s.radsAt(now) + (float) rads;
 			s.startTime = now;
+			lasting(s);
 			s.radius = Math.max(s.radius, (float) radius);
 			sources.markDirty();
 			return;
@@ -281,6 +295,35 @@ public final class Clouds {
 		name = dev.radiation.api.RadiationApi.addSource(level, "fallout", new Vec3(cx, y, cz), (float) rads, (float) Math.max(radius, CELL),
 				dev.radiation.api.RadiationApi.Falloff.LINEAR, true, IODINE_HALF_LIFE, LONG_LIVED);
 		CELLS.put(key, name);
+		RadiationSources.PointSource added = sources.source(name);
+		if (added != null) {
+			lasting(added);
+			sources.markDirty();
+		}
+	}
+
+	/**
+	 * Ground zero of a nuclear detonation (RedButton's {@code nuke_*} sources, which come without a half-life) is fallout
+	 * too: it decays like iodine with a long-lived part and is gone after falloutLifetimeDays. Sources from before 1.9.0
+	 * start decaying now.
+	 */
+	public static void nuclear(RadiationSources.PointSource s, long now) {
+		if (s.name == null || !s.name.startsWith("nuke_") || s.lifetimeTicks > 0) {
+			return;
+		}
+		if (s.halfLifeTicks <= 0) {
+			s.halfLifeTicks = IODINE_HALF_LIFE;
+			s.longLivedFraction = LONG_LIVED;
+			s.startTime = now;
+		}
+		lasting(s);
+	}
+
+	/** Fallout does not stay forever: its caesium decays too, and it is gone after falloutLifetimeDays. */
+	static void lasting(RadiationSources.PointSource s) {
+		dev.radiation.config.RadiationConfig.Clouds cfg = dev.radiation.config.RadiationConfig.get().clouds;
+		s.longHalfLifeTicks = Math.round(cfg.falloutLongHalfLifeDays * 24000.0);
+		s.lifetimeTicks = Math.round(cfg.falloutLifetimeDays * 24000.0);
 	}
 
 	private static String cell(String dim, double x, double z) {
@@ -338,7 +381,8 @@ public final class Clouds {
 		for (Cloud c : state.clouds) {
 			double radius = c.r0 + dev.radiation.config.RadiationConfig.get().clouds.spreadPerBlock * c.travelled;
 			lines.add(String.format(Locale.ROOT, "cloud at %.0f %.0f %.0f, %.0f blocks out, %.0f wide, %.3f rad/s below%s", c.x, c.y, c.z, c.travelled,
-					2 * radius, c.activity * (c.r0 / radius) * (c.r0 / radius), c.raining ? ", raining out" : ""));
+					2 * radius, c.activity * (c.r0 / radius) * (c.r0 / radius) * Math.clamp((dev.radiation.config.RadiationConfig.get().clouds.maxTravelBlocks
+							- c.travelled) / (0.25 * dev.radiation.config.RadiationConfig.get().clouds.maxTravelBlocks), 0, 1), c.raining ? ", raining out" : ""));
 		}
 		return lines;
 	}

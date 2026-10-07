@@ -77,16 +77,26 @@ public class RadiationSources {
 		public long halfLifeTicks;
 		/** Game time at which the source had {@link #rads}. */
 		public long startTime;
-		/** Part of {@link #rads} that does not decay (long-lived nuclides, like caesium in fallout next to iodine). */
+		/** Part of {@link #rads} that decays slowly (long-lived nuclides, like caesium in fallout next to iodine). */
 		public float longLivedFraction;
+		/** Half-life of the long-lived part in game ticks; 0 = it never decays. */
+		public long longHalfLifeTicks;
+		/** Game ticks after {@link #startTime} when the source is gone for good, fading out over the last fifth; 0 = no end. */
+		public long lifetimeTicks;
 
 		/** Rads per second at the centre at game time {@code now}, after radioactive decay. */
 		public float radsAt(long now) {
 			if (halfLifeTicks <= 0) {
 				return rads;
 			}
-			double decayed = Math.pow(0.5, Math.max(0, now - startTime) / (double) halfLifeTicks);
-			return (float) (rads * (longLivedFraction + (1 - longLivedFraction) * decayed));
+			long age = Math.max(0, now - startTime);
+			double decayed = Math.pow(0.5, age / (double) halfLifeTicks);
+			double lasting = longHalfLifeTicks > 0 ? Math.pow(0.5, age / (double) longHalfLifeTicks) : 1;
+			double end = 1;
+			if (lifetimeTicks > 0) {
+				end = Math.clamp((lifetimeTicks - age) / (0.2 * lifetimeTicks), 0, 1);
+			}
+			return (float) (rads * (longLivedFraction * lasting + (1 - longLivedFraction) * decayed) * end);
 		}
 
 		public String describe() {

@@ -32,7 +32,7 @@ public class RadiationConfig {
 
 	/** Format of this file; older files (without it: 0) are upgraded on load (see {@link #migrate}). */
 	public int configVersion = 0;
-	static final int CURRENT_VERSION = 3;
+	static final int CURRENT_VERSION = 4;
 
 	// --- core ---
 	/** Accumulated rads at which the player dies. */
@@ -235,7 +235,13 @@ public class RadiationConfig {
 	/** Radioactive clouds: how long they last and how much fallout they leave. */
 	public static class Clouds {
 		/** The longest a cloud drifts, in minutes (of play at 20 ticks per second), before it is gone. */
-		public int maxAgeMinutes = 120;
+		public int maxAgeMinutes = 40;
+		/** The farthest a cloud drifts, in blocks; it thins out over the last quarter and is gone there. */
+		public int maxTravelBlocks = 2000;
+		/** Half-life of the long-lived part of fallout (caesium), in Minecraft days. 0 = it never decays. */
+		public float falloutLongHalfLifeDays = 20;
+		/** Fallout is gone completely this many Minecraft days after it last fell (fading out over the last fifth). 0 = never. */
+		public float falloutLifetimeDays = 40;
 		/** How much wider a cloud gets per block it drifts: the faster it spreads, the sooner it is too thin to matter. */
 		public float spreadPerBlock = 0.012f;
 		/** A cloud is gone when the dose rate under it falls below this (rad/s). */
@@ -250,6 +256,9 @@ public class RadiationConfig {
 		void sanitize() {
 			maxAgeMinutes = Math.clamp(maxAgeMinutes, 1, 24 * 60);
 			spreadPerBlock = Math.clamp(spreadPerBlock, 0f, 1f);
+			maxTravelBlocks = Math.max(100, maxTravelBlocks);
+			falloutLongHalfLifeDays = Math.max(0, falloutLongHalfLifeDays);
+			falloutLifetimeDays = Math.max(0, falloutLifetimeDays);
 			fadedRads = Math.max(0.0001f, fadedRads);
 			falloutFactor = Math.clamp(falloutFactor, 0f, 1000f);
 			rainFactor = Math.clamp(rainFactor, 0f, 100f);
@@ -351,6 +360,12 @@ public class RadiationConfig {
 			}
 			RadiationMod.LOGGER.info("Upgraded config/radiation.json to version 3 (food.notContaminating {}, gammaContaminates {})",
 					food.notContaminating, food.gammaContaminates);
+		}
+		if (configVersion < 4) {
+			// 1.9.0: clouds die sooner (and go at most 2 km); fallout fades away completely
+			if (clouds.maxAgeMinutes == 120) clouds.maxAgeMinutes = 40;
+			RadiationMod.LOGGER.info("Upgraded config/radiation.json to version 4 (clouds.maxAgeMinutes {}, maxTravelBlocks {})", clouds.maxAgeMinutes,
+					clouds.maxTravelBlocks);
 		}
 		configVersion = CURRENT_VERSION;
 	}

@@ -558,7 +558,8 @@ public final class RadiationTracker {
 	/** Forgets decaying sources once they are down to practically nothing (0.0005 rad/s). */
 	private static void removeDecayed(MinecraftServer server) {
 		long now = server.overworld().getGameTime();
-		boolean removed = sources.sources.removeIf(s -> s.halfLifeTicks > 0 && s.radsAt(now) < 0.0005f);
+		boolean removed = sources.sources.removeIf(s -> s.halfLifeTicks > 0 && s.radsAt(now) < 0.0005f
+				|| s.lifetimeTicks > 0 && now - s.startTime >= s.lifetimeTicks);
 		if (removed) {
 			sources.markDirty();
 		}

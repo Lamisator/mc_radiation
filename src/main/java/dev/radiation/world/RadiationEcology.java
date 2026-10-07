@@ -231,7 +231,10 @@ public final class RadiationEcology {
 	private static void food(ServerLevel level, LongOpenHashSet hot, float seconds) {
 		for (long chunk : hot.toLongArray()) {
 			var c = level.getChunkSource().getChunkNow(ChunkPos.getX(chunk), ChunkPos.getZ(chunk));
-			if (c != null) dev.radiation.food.FoodContamination.storage(level, c, seconds);
+			if (c != null) {
+				dev.radiation.food.FoodContamination.storage(level, c, seconds);
+				dev.radiation.food.FoodContamination.crops(level, c);
+			}
 		}
 		for (Entity e : level.getAllEntities()) {
 			if (e instanceof net.minecraft.world.entity.item.ItemEntity item && item.isAlive() && hot.contains(ChunkPos.pack(item.blockPosition()))) {

@@ -88,6 +88,22 @@ public final class FoodContamination {
 			.persistent(Codec.FLOAT)
 			.buildAndRegister(RadiationMod.id("food_exposure"));
 
+	/**
+	 * What a growing plant has taken up: the highest contamination seen at its block while it grew (rads per harvested
+	 * item), and, for crops, the age it had then (a younger crop in the same place is a new one, planted later).
+	 */
+	public record Exposure(float rads, int age) {
+		public static final Codec<Exposure> CODEC = com.mojang.serialization.codecs.RecordCodecBuilder.create(i -> i.group(
+				Codec.FLOAT.fieldOf("rads").forGetter(Exposure::rads),
+				Codec.INT.optionalFieldOf("age", -1).forGetter(Exposure::age)).apply(i, Exposure::new));
+	}
+
+	/** Per chunk: block position (as a long, written as text) to what the plant there has taken up. */
+	public static final net.fabricmc.fabric.api.attachment.v1.AttachmentType<java.util.Map<String, Exposure>> CROP_EXPOSURE =
+			net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry.<java.util.Map<String, Exposure>>builder()
+					.persistent(Codec.unboundedMap(Codec.STRING, Exposure.CODEC))
+					.buildAndRegister(RadiationMod.id("crop_exposure"));
+
 	private FoodContamination() {
 	}
 
@@ -101,8 +117,9 @@ public final class FoodContamination {
 			Entity entity = context.getOptional(LootContextParams.THIS_ENTITY);
 			float each = 0;
 			if (state != null && origin != null && plant(state)) {
-				// a harvest: what the plant took up from the irradiated ground
-				each = RadiationTracker.contaminationAt(level, Vec3.atCenterOf(BlockPos.containing(origin))) * cfg.cropUptake;
+				// a harvest: what the plant took up from the irradiated ground - now, or at any time while it grew
+				BlockPos at = BlockPos.containing(origin);
+				each = Math.max(RadiationTracker.contaminationAt(level, Vec3.atCenterOf(at)) * cfg.cropUptake, takeExposure(level, at, state));
 			} else if (state == null && entity instanceof LivingEntity animal && !(entity instanceof net.minecraft.world.entity.player.Player)) {
 				Float rads = animal.getAttached(ModRegistry.RADS);
 				each = rads == null ? 0 : rads * cfg.animalShare;
@@ -212,6 +229,80 @@ public final class FoodContamination {
 		var b = state.getBlock();
 		return RadiationEcology.grows(state) || state.is(BlockTags.LEAVES) || b == Blocks.PUMPKIN || b == Blocks.MELON || b == Blocks.BROWN_MUSHROOM
 				|| b == Blocks.RED_MUSHROOM || b == Blocks.CAVE_VINES || b == Blocks.CAVE_VINES_PLANT || b == Blocks.SWEET_BERRY_BUSH;
+	}
+
+	// ------------------------------------------------------------------ crops remember
+
+	private static int age(BlockState state) {
+		return state.getBlock() instanceof net.minecraft.world.level.block.CropBlock crop ? crop.getAge(state) : -1;
+	}
+
+	/**
+	 * Every plant in a contaminated chunk remembers the worst contamination it has seen (measured per 4x4 cell, at the
+	 * plants' height). Harvested later - even long after the fallout is gone - it still carries it. Called with the
+	 * food storage sweep, every {@code food.storageIntervalTicks}.
+	 */
+	public static void crops(ServerLevel level, LevelChunk chunk) {
+		RadiationConfig.Food cfg = RadiationConfig.get().food;
+		if (cfg.cropUptake <= 0) return;
+		java.util.Map<String, Exposure> had = chunk.getAttached(CROP_EXPOSURE);
+		java.util.Map<String, Exposure> map = had == null ? new java.util.HashMap<>() : new java.util.HashMap<>(had);
+		boolean changed = false;
+		float[] cells = new float[16];
+		java.util.Arrays.fill(cells, Float.NaN);
+		int x0 = chunk.getPos().getMinBlockX(), z0 = chunk.getPos().getMinBlockZ();
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+		for (int dx = 0; dx < 16; dx++) {
+			for (int dz = 0; dz < 16; dz++) {
+				int top = chunk.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, dx, dz);
+				for (int y = top; y >= top - 2; y--) {
+					pos.set(x0 + dx, y, z0 + dz);
+					BlockState s = chunk.getBlockState(pos);
+					if (!plant(s)) continue;
+					int cell = (dx >> 2) + (dz >> 2) * 4;
+					if (Float.isNaN(cells[cell])) {
+						cells[cell] = RadiationTracker.contaminationAt(level, new Vec3(x0 + (dx & ~3) + 2.0, y + 0.5, z0 + (dz & ~3) + 2.0));
+					}
+					float rads = cells[cell] * cfg.cropUptake;
+					if (rads < 0.07f) continue;
+					String key = Long.toString(pos.asLong());
+					Exposure old = map.get(key);
+					if (old == null || rads > old.rads() || age(s) != old.age() && age(s) >= 0) {
+						float keep = old == null || age(s) >= 0 && age(s) < old.age() ? 0 : old.rads();
+						map.put(key, new Exposure(Math.max(rads, keep), age(s)));
+						changed = true;
+					}
+				}
+			}
+		}
+		// plants that are gone (eaten, trampled, dug up) leave nothing behind
+		changed |= map.keySet().removeIf(k -> !plant(chunk.getBlockState(BlockPos.of(Long.parseLong(k)))));
+		if (changed) {
+			if (map.isEmpty()) chunk.removeAttached(CROP_EXPOSURE);
+			else chunk.setAttached(CROP_EXPOSURE, map);
+		}
+	}
+
+	/** What the plant harvested at pos has taken up while it grew (also from the blocks above and below: cane, bamboo, cactus); forgets it. */
+	static float takeExposure(ServerLevel level, BlockPos pos, BlockState state) {
+		LevelChunk chunk = level.getChunkAt(pos);
+		java.util.Map<String, Exposure> had = chunk.getAttached(CROP_EXPOSURE);
+		if (had == null || had.isEmpty()) return 0;
+		java.util.Map<String, Exposure> map = new java.util.HashMap<>(had);
+		float most = 0;
+		for (BlockPos p : new BlockPos[]{pos, pos.above(), pos.below()}) {
+			Exposure e = map.get(Long.toString(p.asLong()));
+			if (e == null) continue;
+			if (p.equals(pos)) {
+				map.remove(Long.toString(p.asLong()));
+				// a crop younger than when it was exposed was planted afterwards
+				if (age(state) >= 0 && e.age() >= 0 && age(state) < e.age()) continue;
+			}
+			most = Math.max(most, e.rads());
+		}
+		if (map.isEmpty()) chunk.removeAttached(CROP_EXPOSURE);
+		else chunk.setAttached(CROP_EXPOSURE, map);
+		return most;
 	}
 
 	// ------------------------------------------------------------------ storage

@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.8.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.9.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -174,6 +174,9 @@ Food gets contaminated
 - **in the field**: a crop takes up the radiation at the plant when it is harvested, as grain, milk and mushrooms did
   around Chernobyl: 20 rad per item for every rad/s. Wheat from a field at 0.25 rad/s: 5 rad a sheaf. Seeds stay
   clean. The same goes for berries, apples from leaves, melons, pumpkins, cocoa, mushrooms, sugar cane.
+  **A crop remembers** (since 1.9.0): the strongest radiation a growing crop was ever exposed to stays with it until
+  it is harvested, so the harvest is contaminated even when the fallout has faded or the cloud has passed by then. A
+  field the cloud passed over at 0.5 rad/s still gives 6.7 rad wheat weeks later. Only a newly sown crop starts clean.
 - **in the animal**: meat, eggs and the like from an irradiated animal carry a tenth of its rads.
 - **in storage**: food kept in a chest, barrel, furnace, hopper... or lying on the ground where it is irradiated takes up
   0.005 rad per item for every rad it is exposed to: an hour at 1 rad/s makes 18 rad. **Food in your inventory takes up
@@ -191,6 +194,9 @@ wrecked core gets contaminated. (1.7.2 counted only radioactivity lying on the g
 **20 rad**, a steak (8) 32, an apple (4) 16, raw beef (3) 12, a melon slice (2) 8. What has no nutrition of its own counts
 with its share of what it is made into, so that the cap carries through processing: wheat a third of a loaf (6.7 rad),
 a pumpkin 16, an egg 8, sugar 4, a bucket of milk 16, a mushroom 12 (half a stew), a hay bale 60, a cake 56.
+
+**Food stays contaminated.** The radiation fades from the land (see below), but never from food that took it up: a
+sheaf, a loaf or a steak keeps its rad for good.
 
 Harvests are rounded to a few steps (0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10, 20...) so that they stack.
 
@@ -211,11 +217,18 @@ nuclear detonation ([RedButton](https://github.com/Lamisator/mc_redbutton)) or a
 `/radiation cloud <pos> <rad/s> [radius] [altitude]` releases a **radioactive cloud**. It rises high into the sky (by default 110 blocks above the
 ground, a nuclear detonation's up to 375; it climbs another 80 as it drifts) and drifts with the wind, spreading as it goes. The ground under it gets its radiation (people indoors are
 shielded by their roofs), and it leaves **fallout** behind: sources that fade like iodine-131 (half-life 8 days)
-except for about 15 % that stays like caesium-137. Fallout that lands in the same 48-block square adds up into one
-source. A dry cloud fades away when it has spread too thin, after several kilometres, or after two hours.
+except for about 15 % that lasts longer, like caesium-137 (half-life 20 days here). Fallout that lands in the same 48-block square adds up into one
+source.
 
-**Since 1.6.0 clouds last much longer and contaminate much more** (all of it in the config, `clouds`): a cloud spreads
-half as fast, lives up to two hours and leaves five times the fallout. In a test, a 3 rad/s cloud (wind 10 m/s) was
+**Since 1.9.0 everything fades away completely.** A cloud travels **at most 2,000 blocks** (`clouds.maxTravelBlocks`);
+over its last 500 blocks it thins out to nothing, and it is gone after 40 minutes at the latest, or sooner when it has
+spread too thin. Fallout is gone completely **40 Minecraft days** after it landed (`clouds.falloutLifetimeDays`); over the
+last fifth of that time it fades to zero. A nuclear detonation's **ground zero** ([RedButton](https://github.com/Lamisator/mc_redbutton))
+fades the same way: before 1.9.0 it stayed forever. Sources from older worlds are converted when the world loads. What
+the radiation left in food and crops stays (see above).
+
+**Since 1.6.0 clouds contaminate much more** (all of it in the config, `clouds`): a cloud spreads
+half as fast and leaves five times the fallout. In a test, a 3 rad/s cloud (wind 10 m/s) was
 still 1.2 rad/s strong 490 blocks downwind in dry weather and left a trail of fallout up to 25 rad/s; the same cloud in
 rain was washed out to 0.1 rad/s within 500 blocks and left fallout up to 85 rad/s near where it rained out.
 Fallout also lands on the ground where nobody is near (1.5 could leave it hanging at the height the cloud started).
@@ -270,7 +283,8 @@ Every value is configurable. The files are created on first start in the instanc
 In Prism, that's **Edit → Minecraft folder → config**.
 
 **`config/radiation.json`**: gameplay (on a server, the server's copy applies). Files from older versions are upgraded
-on load; 1.8.0 empties `food.notContaminating` if it still holds the old default list.
+on load; 1.8.0 empties `food.notContaminating` if it still holds the old default list, and 1.9.0 sets
+`clouds.maxAgeMinutes` from the old 120 to 40.
 
 | Setting | Default | |
 |---------|---------|-|
@@ -304,7 +318,10 @@ on load; 1.8.0 empties `food.notContaminating` if it still holds the old default
 | `food.notContaminating` | (empty) | Point sources (by name prefix) whose radiation does not get into food, e.g. `radioactive_cloud`, `fission_cloud`, `fission_release` |
 | `food.gammaContaminates` | true | Whether radiating blocks (corium, spent fuel) and waste barrels contaminate food too |
 | `food.radsPerNutrition` | 4 | The most a food carries per point of nutrition (bread: 20 rad); 0 for no cap |
-| `clouds.maxAgeMinutes` | 120 | The longest a radioactive cloud drifts |
+| `clouds.maxAgeMinutes` | 40 | The longest a radioactive cloud drifts |
+| `clouds.maxTravelBlocks` | 2000 | The farthest a cloud travels; it thins out over the last quarter |
+| `clouds.falloutLongHalfLifeDays` | 20 | Half-life of fallout's long-lived part (and ground zero's) |
+| `clouds.falloutLifetimeDays` | 40 | Fallout and ground zero are gone completely after this many days |
 | `clouds.spreadPerBlock` | 0.012 | How much wider it gets per block (wider = thinner); 1.5 had 0.025 |
 | `clouds.fadedRads` | 0.001 | A cloud is gone when the dose rate under it falls below this |
 | `clouds.falloutFactor` | 5.0 | All fallout multiplied by this (1 = as in 1.5) |
@@ -338,7 +355,8 @@ Since 1.5.0 `releaseCloud(level, pos, strength, radius, altitude)` releases a ra
 Since 1.4.0 point sources can decay: `addSource(..., halfLifeTicks, longLivedFraction)` makes a source that halves
 every `halfLifeTicks` game ticks except for a part that stays (fallout: iodine fades, caesium stays), and that is removed
 by itself once it is down to nothing. `updateSource(level, name, pos, rads, radius)` moves a source, e.g. a drifting
-cloud. Fission's radioactive clouds and fallout use both.
+cloud. Fission's radioactive clouds and fallout use both. Since 1.9.0 sources named `nuke_...` (RedButton's ground zero)
+get fallout's half-lives and lifetime by themselves.
 
 ## Building from source
 
@@ -348,7 +366,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.8.0.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.9.0.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).

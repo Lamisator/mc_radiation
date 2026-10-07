@@ -70,6 +70,7 @@ public final class RadiationApi {
 		source.halfLifeTicks = Math.max(0, halfLifeTicks);
 		source.startTime = level.getGameTime();
 		source.longLivedFraction = Math.clamp(longLivedFraction, 0f, 1f);
+		dev.radiation.world.Clouds.nuclear(source, level.getGameTime());
 		sources.sources.add(source);
 		sources.markDirty();
 		return unique;
