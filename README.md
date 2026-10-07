@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.3.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.4.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -112,18 +112,22 @@ Version 1.2.0 adds everything you need to build a Fallout-style fallout shelter.
 
 ## Concrete and shielding
 
-Version 1.3.0 makes shielding depend on the material. Every block between a radiation source and you
-absorbs a fraction of the radiation:
+Shielding depends on the material. Every block between a radiation source and you absorbs a fraction of
+the radiation:
 
-| Material | Absorbs per block |
-|---|---|
-| **Heavy Concrete**, iron/gold/netherite blocks, obsidian, vault doors | 75 % |
-| **Reinforced Concrete**, all coloured concrete, vault walls | 55 % |
-| Other solid blocks | 35 % |
-| Water | 30 % |
-| Air, glass panes, leaves and other see-through blocks | nothing |
+| Material | Absorbs per block | Left after 3 blocks |
+|---|---|---|
+| **Heavy Concrete**, iron/gold/netherite blocks, obsidian, vault doors | 97 % | 0.003 % |
+| **Reinforced Concrete**, all coloured concrete, vault walls | 90 % | 0.1 % |
+| Other solid blocks | 35 % | 27 % |
+| Water | 30 % | 34 % |
+| Air, glass panes, leaves and other see-through blocks | nothing | |
 
-Three blocks of heavy concrete leave about 1.6 % of the radiation; three of dirt leave 27 %.
+Concrete shields reliably (since 1.4.0; before it let 45 % through each block): each block takes away 90 %,
+so a wall a few blocks thick stops practically everything. Measured in the test world, an emitter of
+1000 rad/s at one metre, 6 m away: 26.8 rad/s in the open, 2.7 behind one block of concrete, 0.27 behind
+two, 0.027 behind three, 0.0027 behind four. (Real concrete is better still: a metre of it lets through
+about 1/10,000 of fission-product gamma rays.)
 
 | Block | Recipe | |
 |---|---|---|
@@ -133,6 +137,32 @@ Three blocks of heavy concrete leave about 1.6 % of the radiation; three of dirt
 Both need a diamond pickaxe. They are the material for bunkers, vaults and reactor buildings (the
 Fission mod's reactors cannot blow through enough of them). The tags `radiation:shielding_concrete`
 and `radiation:shielding_heavy` let data packs and other mods add their own blocks.
+
+## What radiation does to the land
+
+Since 1.4.0 radiation damages plants, soil and animals, not only players. Everything depends on the dose
+rate at the spot, so concrete, water and earth protect a field exactly as they protect you.
+
+| Dose rate (default) | What happens |
+|---|---|
+| 0.01 rad/s | Crops, saplings, melons, pumpkins, berries, sugar cane, cactus, bamboo and nether wart grow at half speed |
+| 0.1 rad/s | ...at a tenth of their speed (in between it changes gradually) |
+| 0.3 rad/s | Leaves die and fall: trees stand bare |
+| 1 rad/s | Crops, flowers, grass, ferns and saplings die; dead bushes are left where they can stand |
+| 2 rad/s | Grass, podzol, moss and farmland die back to bare dirt |
+| 25 rad/s | Dirt of every kind turns to sand: nothing lives in the soil any more |
+| 0.2 rad/s | Animals and villagers take up rads like players: weak and slow from 250, poisoned from 750, dead at 1000. Undead do not care. |
+
+Is that realistic? Roughly, but plants are slower to show it than here: 0.01 rad/s is 8.6 Gy a day, which
+stunts grain within days; pines at Chernobyl (the Red Forest) died after a few hundred gray, grasses and
+herbs take several times more. A rate of 1 rad/s (36 Gy an hour) kills most plants within a day.
+
+| A source of 40 rad/s after a while | Wheat at 0.3, 0.1 and 0 rad/s, same time |
+|---|---|
+| ![](docs/img/ecology_after.jpg) | ![](docs/img/ecology_fields.jpg) |
+
+Only the land near radiation is looked at, a few surface blocks per chunk every second, so it costs little
+and changes come over a few minutes rather than at once. All thresholds are in the config (`ecology`).
 
 ## Commands
 
@@ -179,7 +209,7 @@ In Prism, that's **Edit → Minecraft folder → config**.
 | `updateIntervalTicks` | 10 | How often radiation is calculated (20 = once per second) |
 | `affectCreativeAndSpectator` | false | |
 | `shieldingPerBlock` | 0.35 | Fraction removed by each solid block between a point source and you |
-| `concreteShielding`, `heavyShielding`, `waterShielding` | 0.55, 0.75, 0.30 | The same for concrete, heavy shielding and water |
+| `concreteShielding`, `heavyShielding`, `waterShielding` | 0.90, 0.97, 0.30 | The same for concrete, heavy shielding and water. Files from older versions with the old defaults (0.55, 0.75) are upgraded on load; values changed by hand stay. |
 | `barrelRads`, `barrelRadius` | 6, 6 | Nuclear Waste Barrel strength |
 | `protectiveItems` | hazmat pieces at 0.225 | Any item id → protection when worn. You can add other mods' armor here. |
 | `radXResistance` | 0.5 | |
@@ -187,6 +217,15 @@ In Prism, that's **Edit → Minecraft folder → config**.
 | `radAwayTotalRads` | 150 | |
 | `radAwayDurationSeconds`, `radXDurationSeconds` | 10, 240 | Need a restart |
 | `requireGeigerCounter` | false | If true, the RAD/s readout and the clicking only work while you carry a Geiger counter |
+| `ecology.enabled` | true | Radiation changes the land (see above) |
+| `ecology.cropSlowdownRads`, `ecology.cropGrowthAtSlowdown` | 0.01, 0.5 | From this rate crops grow at this fraction of their speed... |
+| `ecology.cropStuntRads`, `ecology.cropGrowthWhenStunted` | 0.1, 0.1 | ...and from this rate at this fraction |
+| `ecology.leafDeathRads` | 0.3 | Leaves die |
+| `ecology.plantDeathRads` | 1.0 | Crops, flowers, grass, ferns and saplings die |
+| `ecology.grassToDirtRads` | 2.0 | Grass, podzol, moss and farmland turn to dirt |
+| `ecology.soilToSandRads` | 25.0 | Dirt turns to sand |
+| `ecology.animalHarmRads` | 0.2 | Animals and villagers start taking up rads (0 = never) |
+| `ecology.intervalTicks`, `ecology.samplesPerChunk`, `ecology.changeChance` | 20, 4, 0.5 | How often, how many surface blocks per chunk near radiation, and the chance a block above a threshold changes each time: higher is faster |
 
 **`config/radiation-client.json`**: per-player display settings:
 
@@ -206,7 +245,12 @@ Other mods can use `dev.radiation.api.RadiationApi` (server side) to add and rem
 Since 1.3.0, `setEmitter(level, pos, radsAtOneMetre, radius)` makes a block radiate: its strength at one metre falls off
 with the square of the distance and is absorbed by the blocks in between. Emitters are saved with the world and dropped
 when their block changes. `transmission(level, from, to)` gives the fraction that gets through between two points.
-[Fission](https://github.com/Lamisator/mc_fission) uses these for reactor cores, spent fuel, storage and corium.
+[Fission](https://github.com/Lamisator/fission) uses these for reactor cores, spent fuel, storage and corium.
+
+Since 1.4.0 point sources can decay: `addSource(..., halfLifeTicks, longLivedFraction)` makes a source that halves
+every `halfLifeTicks` game ticks except for a part that stays (fallout: iodine fades, caesium stays), and that is removed
+by itself once it is down to nothing. `updateSource(level, name, pos, rads, radius)` moves a source, e.g. a drifting
+cloud. Fission's radioactive clouds and fallout use both.
 
 ## Building from source
 
@@ -216,8 +260,9 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.3.0.jar`. `./gradlew runClient` starts a development
-client with the mod loaded.
+The mod jar ends up in `build/libs/radiation-1.4.0.jar`. `./gradlew runClient` starts a development
+client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
+`./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 
 `tools/gen_assets.py` regenerates the textures and sounds (needs Pillow, numpy and soundfile, plus
 the vanilla textures extracted from the Minecraft client jar).

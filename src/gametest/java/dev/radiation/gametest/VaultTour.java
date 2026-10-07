@@ -30,6 +30,9 @@ public class VaultTour implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (!System.getProperty("radiation.scene", "").isEmpty()) {
+			return;
+		}
 		context.getInput().resizeWindow(1280, 720);
 		String map = System.getProperty("radiation.map", "");
 		if (!map.isEmpty()) {

@@ -32,6 +32,25 @@ public final class RadiationApi {
 	 * @return the name the source was stored under (usable with {@link #removeSource} and {@code /radiation source remove})
 	 */
 	public static String addSource(ServerLevel level, String name, Vec3 pos, float rads, float radius, Falloff falloff, boolean shielded) {
+		return addSource(level, name, pos, rads, radius, falloff, shielded, 0);
+	}
+
+	/**
+	 * Like {@link #addSource(ServerLevel, String, Vec3, float, float, Falloff, boolean)}, for a source that decays:
+	 * {@code rads} now, half of it after {@code halfLifeTicks} game ticks (24000 = one Minecraft day), and so on. It is
+	 * removed by itself once it has decayed to practically nothing. 0 = no decay.
+	 */
+	public static String addSource(ServerLevel level, String name, Vec3 pos, float rads, float radius, Falloff falloff, boolean shielded,
+			long halfLifeTicks) {
+		return addSource(level, name, pos, rads, radius, falloff, shielded, halfLifeTicks, 0);
+	}
+
+	/**
+	 * A decaying source of which a part never decays, e.g. fallout: {@code longLivedFraction} of {@code rads} stays (caesium),
+	 * the rest halves every {@code halfLifeTicks} (iodine).
+	 */
+	public static String addSource(ServerLevel level, String name, Vec3 pos, float rads, float radius, Falloff falloff, boolean shielded,
+			long halfLifeTicks, float longLivedFraction) {
 		RadiationSources sources = RadiationTracker.sources();
 		String base = name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_.+-]", "_");
 		String unique = base;
@@ -48,9 +67,39 @@ public final class RadiationApi {
 		source.radius = radius;
 		source.falloff = RadiationSources.Falloff.valueOf(falloff.name());
 		source.shielded = shielded;
+		source.halfLifeTicks = Math.max(0, halfLifeTicks);
+		source.startTime = level.getGameTime();
+		source.longLivedFraction = Math.clamp(longLivedFraction, 0f, 1f);
 		sources.sources.add(source);
-		sources.save();
+		sources.markDirty();
 		return unique;
+	}
+
+	/**
+	 * Moves and/or changes an existing source, e.g. a drifting cloud; its decay starts again from {@code rads} now.
+	 *
+	 * @return false if there is no source of that name (any more)
+	 */
+	public static boolean updateSource(ServerLevel level, String name, Vec3 pos, float rads, float radius) {
+		RadiationSources sources = RadiationTracker.sources();
+		RadiationSources.PointSource source = sources.source(name);
+		if (source == null) {
+			return false;
+		}
+		source.dimension = RadiationTracker.dimensionId(level);
+		source.x = pos.x;
+		source.y = pos.y;
+		source.z = pos.z;
+		source.rads = rads;
+		source.radius = radius;
+		source.startTime = level.getGameTime();
+		sources.markDirty();
+		return true;
+	}
+
+	/** Whether a source of that name exists. */
+	public static boolean hasSource(String name) {
+		return RadiationTracker.sources().source(name) != null;
 	}
 
 	/** @return whether a source of that name existed */
@@ -61,7 +110,7 @@ public final class RadiationApi {
 			return false;
 		}
 		sources.sources.remove(source);
-		sources.save();
+		sources.markDirty();
 		return true;
 	}
 

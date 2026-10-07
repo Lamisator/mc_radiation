@@ -63,6 +63,7 @@ public final class RadiationTracker {
 
 	public static void onServerStarted(MinecraftServer server) {
 		sources = RadiationSources.load(server);
+		RadiationEcology.reset();
 		STATES.clear();
 		VISUALIZERS.clear();
 		RadiationMod.LOGGER.info("Loaded {} radiation zones, {} sources and {} barrels",
@@ -87,6 +88,7 @@ public final class RadiationTracker {
 	/** Re-reads radiation_sources.json, e.g. after it was edited by hand. */
 	public static void reloadSources(MinecraftServer server) {
 		sources = RadiationSources.load(server);
+		RadiationEcology.reset();
 	}
 
 	public static RadiationSources sources() {
@@ -134,9 +136,13 @@ public final class RadiationTracker {
 		if (ticks % 10 == 0 && !VISUALIZERS.isEmpty()) {
 			visualize(server);
 		}
+		if (config.ecology.enabled && ticks % config.ecology.intervalTicks == 0) {
+			RadiationEcology.tick(server, config);
+		}
 		if (ticks % 100 == 0) {
 			validateBarrels(server);
 			validateEmitters(server);
+			removeDecayed(server);
 			sources.saveIfDirty();
 		}
 	}
@@ -290,7 +296,7 @@ public final class RadiationTracker {
 				continue;
 			}
 			Vec3 center = new Vec3(source.x, source.y, source.z);
-			float value = pointExposure(level, center, null, pos, source.rads, source.radius, source.falloff, source.shielded, config);
+			float value = pointExposure(level, center, null, pos, source.radsAt(level.getGameTime()), source.radius, source.falloff, source.shielded, config);
 			if (value > 0) {
 				total += value;
 				if (breakdown != null) {
@@ -492,6 +498,15 @@ public final class RadiationTracker {
 		}
 		for (String key : gone) {
 			sources.removeEmitter(key);
+		}
+	}
+
+	/** Forgets decaying sources once they are down to practically nothing (0.0005 rad/s). */
+	private static void removeDecayed(MinecraftServer server) {
+		long now = server.overworld().getGameTime();
+		boolean removed = sources.sources.removeIf(s -> s.halfLifeTicks > 0 && s.radsAt(now) < 0.0005f);
+		if (removed) {
+			sources.markDirty();
 		}
 	}
 

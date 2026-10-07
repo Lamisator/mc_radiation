@@ -27,6 +27,7 @@ public class RadiationSources {
 	public List<Barrel> barrels = new ArrayList<>();
 	/** Radiating blocks of other mods (see RadiationApi#setEmitter), kept in sync by them. */
 	public List<Emitter> emitters = new ArrayList<>();
+	private transient long version;
 	private transient java.util.Map<String, Emitter> emitterIndex;
 
 	private transient Path path;
@@ -72,10 +73,26 @@ public class RadiationSources {
 		public Falloff falloff = Falloff.LINEAR;
 		/** Whether solid blocks between the source and the player absorb radiation. */
 		public boolean shielded = true;
+		/** Half-life in game ticks; 0 = the source never weakens. */
+		public long halfLifeTicks;
+		/** Game time at which the source had {@link #rads}. */
+		public long startTime;
+		/** Part of {@link #rads} that does not decay (long-lived nuclides, like caesium in fallout next to iodine). */
+		public float longLivedFraction;
+
+		/** Rads per second at the centre at game time {@code now}, after radioactive decay. */
+		public float radsAt(long now) {
+			if (halfLifeTicks <= 0) {
+				return rads;
+			}
+			double decayed = Math.pow(0.5, Math.max(0, now - startTime) / (double) halfLifeTicks);
+			return (float) (rads * (longLivedFraction + (1 - longLivedFraction) * decayed));
+		}
 
 		public String describe() {
-			return String.format(Locale.ROOT, "%s [%s] (%.1f %.1f %.1f), %.1f rad/s, radius %.1f, %s%s",
-					name, dimension, x, y, z, rads, radius, falloff.name().toLowerCase(Locale.ROOT), shielded ? "" : ", unshielded");
+			String decay = halfLifeTicks > 0 ? String.format(Locale.ROOT, ", half-life %.1f days", halfLifeTicks / 24000.0) : "";
+			return String.format(Locale.ROOT, "%s [%s] (%.1f %.1f %.1f), %.2f rad/s, radius %.1f, %s%s%s",
+					name, dimension, x, y, z, rads, radius, falloff.name().toLowerCase(Locale.ROOT), shielded ? "" : ", unshielded", decay);
 		}
 	}
 
@@ -202,6 +219,12 @@ public class RadiationSources {
 
 	public void markDirty() {
 		dirty = true;
+		version++;
+	}
+
+	/** Changes with every change to zones, sources, barrels or emitters (for caches). */
+	public long version() {
+		return version;
 	}
 
 	public void saveIfDirty() {
@@ -215,6 +238,7 @@ public class RadiationSources {
 			return;
 		}
 		dirty = false;
+		version++;
 		try {
 			Path tmp = path.resolveSibling(path.getFileName() + ".tmp");
 			try (Writer writer = Files.newBufferedWriter(tmp)) {

@@ -30,6 +30,10 @@ public class RadiationConfig {
 		return instance;
 	}
 
+	/** Format of this file; older files (without it: 0) are upgraded on load (see {@link #migrate}). */
+	public int configVersion = 0;
+	static final int CURRENT_VERSION = 2;
+
 	// --- core ---
 	/** Accumulated rads at which the player dies. */
 	public float maxRads = 1000f;
@@ -45,16 +49,23 @@ public class RadiationConfig {
 	// --- environment ---
 	/** Each solid block between a point source and the player removes this fraction of the remaining radiation. */
 	public float shieldingPerBlock = 0.35f;
-	/** Fraction absorbed per block of concrete (tag radiation:shielding_concrete: all concrete, reinforced concrete). */
-	public float concreteShielding = 0.55f;
+	/**
+	 * Fraction absorbed per block of concrete (tag radiation:shielding_concrete: all concrete, reinforced concrete). One
+	 * block lets 10 % through, two 1 %, three 0.1 %: a few blocks of concrete reliably shield even a reactor core. (Real
+	 * concrete is better still: a metre of it stops all but about 1/10,000 of the gamma rays from fission products.)
+	 */
+	public float concreteShielding = 0.90f;
 	/** Fraction absorbed per block of heavy shielding (tag radiation:shielding_heavy: heavy concrete, iron blocks...). */
-	public float heavyShielding = 0.75f;
+	public float heavyShielding = 0.97f;
 	/** Fraction absorbed per block of water. */
 	public float waterShielding = 0.30f;
 	/** Rads per second at the centre of a Nuclear Waste Barrel. */
 	public float barrelRads = 6f;
 	/** Radius in blocks of a Nuclear Waste Barrel's radiation. */
 	public float barrelRadius = 6f;
+
+	// --- what radiation does to the land ---
+	public Ecology ecology = new Ecology();
 
 	// --- protection ---
 	/** Fraction of incoming radiation blocked by each worn item. Combined additively, capped by maxProtection. */
@@ -102,6 +113,69 @@ public class RadiationConfig {
 			} catch (NumberFormatException e) {
 				return 0xFFE0A030;
 			}
+		}
+	}
+
+	/**
+	 * Radiation damages plants, soil and animals. All thresholds are dose rates in rad/s at the block (or the animal).
+	 * Plants are far more robust than people, but not endlessly: grain stops growing at a few gray per day, pines die at a
+	 * few hundred gray in total (the Red Forest at Chernobyl), grass and herbs take more. 0.01 rad/s is 8.6 Gy a day.
+	 */
+	public static class Ecology {
+		public boolean enabled = true;
+		/** Crops, saplings, stems, berries, cane and cactus grow at {@link #cropGrowthAtSlowdown} of their normal speed from here. */
+		public float cropSlowdownRads = 0.01f;
+		public float cropGrowthAtSlowdown = 0.5f;
+		/** ...and at {@link #cropGrowthWhenStunted} from here (in between it is interpolated). */
+		public float cropStuntRads = 0.1f;
+		public float cropGrowthWhenStunted = 0.1f;
+		/** Leaves die and fall: the forest turns into bare trunks. */
+		public float leafDeathRads = 0.3f;
+		/** Crops, flowers, grass, ferns and saplings die (dead bushes where they can stand). */
+		public float plantDeathRads = 1.0f;
+		/** Grass, podzol and farmland die back to bare dirt. */
+		public float grassToDirtRads = 2.0f;
+		/** Dirt of every kind turns to sand: nothing lives in the soil any more and it crumbles. */
+		public float soilToSandRads = 25.0f;
+		/** Animals and villagers (not undead) take up rads like players and fall ill and die of them. 0 = never. */
+		public float animalHarmRads = 0.2f;
+		/** How often the land near radiation is looked at, in ticks, and how many surface blocks per chunk each time. */
+		public int intervalTicks = 20;
+		public int samplesPerChunk = 4;
+		/** Chance that a sampled block above a threshold actually changes this time. */
+		public float changeChance = 0.5f;
+
+		/** Fraction of the normal growth that still happens at this dose rate (1 = unaffected). */
+		public float cropGrowth(float rads) {
+			if (rads < cropSlowdownRads) {
+				return 1;
+			}
+			if (rads >= cropStuntRads) {
+				return cropGrowthWhenStunted;
+			}
+			double t = Math.log(rads / cropSlowdownRads) / Math.log(cropStuntRads / cropSlowdownRads);
+			return (float) (cropGrowthAtSlowdown + (cropGrowthWhenStunted - cropGrowthAtSlowdown) * t);
+		}
+
+		/** The lowest dose rate that does anything. */
+		public float lowestThreshold() {
+			float low = Float.MAX_VALUE;
+			for (float t : new float[] {cropSlowdownRads, leafDeathRads, plantDeathRads, grassToDirtRads, soilToSandRads, animalHarmRads}) {
+				if (t > 0) {
+					low = Math.min(low, t);
+				}
+			}
+			return low;
+		}
+
+		void sanitize() {
+			cropGrowthAtSlowdown = Math.clamp(cropGrowthAtSlowdown, 0f, 1f);
+			cropGrowthWhenStunted = Math.clamp(cropGrowthWhenStunted, 0f, 1f);
+			if (cropSlowdownRads <= 0) cropSlowdownRads = 0.01f;
+			if (cropStuntRads <= cropSlowdownRads) cropStuntRads = cropSlowdownRads * 10;
+			intervalTicks = Math.max(1, intervalTicks);
+			samplesPerChunk = Math.clamp(samplesPerChunk, 0, 256);
+			changeChance = Math.clamp(changeChance, 0f, 1f);
 		}
 	}
 
@@ -166,6 +240,8 @@ public class RadiationConfig {
 			stage.effects.removeIf(e -> e == null || e.effect == null);
 		}
 		if (protectiveItems == null) protectiveItems = new LinkedHashMap<>();
+		if (ecology == null) ecology = new Ecology();
+		ecology.sanitize();
 		shieldingPerBlock = Math.clamp(shieldingPerBlock, 0f, 1f);
 		concreteShielding = Math.clamp(concreteShielding, 0f, 1f);
 		heavyShielding = Math.clamp(heavyShielding, 0f, 1f);
@@ -173,6 +249,19 @@ public class RadiationConfig {
 		maxProtection = Math.clamp(maxProtection, 0f, 1f);
 		radAwayDurationSeconds = Math.max(1, radAwayDurationSeconds);
 		radXDurationSeconds = Math.max(1, radXDurationSeconds);
+	}
+
+	/**
+	 * Files written by older versions keep their values, except defaults that changed: concrete used to let almost half
+	 * of the radiation through every block (1.3), now it shields properly. Values someone changed by hand stay as they are.
+	 */
+	private void migrate() {
+		if (configVersion < 2) {
+			if (concreteShielding == 0.55f) concreteShielding = 0.90f;
+			if (heavyShielding == 0.75f) heavyShielding = 0.97f;
+			RadiationMod.LOGGER.info("Upgraded config/radiation.json to version 2 (concrete {}, heavy {})", concreteShielding, heavyShielding);
+		}
+		configVersion = CURRENT_VERSION;
 	}
 
 	/** Loads the config from disk, writing defaults if the file is missing. Returns false on a parse error. */
@@ -189,6 +278,7 @@ public class RadiationConfig {
 		if (loaded == null) {
 			loaded = new RadiationConfig();
 		}
+		loaded.migrate();
 		loaded.sanitize();
 		instance = loaded;
 		save();
