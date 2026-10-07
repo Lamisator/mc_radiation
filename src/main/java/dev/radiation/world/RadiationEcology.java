@@ -53,6 +53,7 @@ public final class RadiationEcology {
 	private static long indexedAt = Long.MIN_VALUE;
 	private static long ratesSince;
 	private static int runs;
+	private static long foodAt;
 
 	private RadiationEcology() {
 	}
@@ -79,7 +80,7 @@ public final class RadiationEcology {
 		return growth < 1 && random.nextFloat() >= growth;
 	}
 
-	private static boolean grows(BlockState state) {
+	public static boolean grows(BlockState state) {
 		Block b = state.getBlock();
 		return state.is(BlockTags.CROPS) || state.is(BlockTags.SAPLINGS) || b instanceof StemBlock || b instanceof SweetBerryBushBlock
 				|| b instanceof CocoaBlock || b instanceof SugarCaneBlock || b instanceof CactusBlock || b instanceof BambooStalkBlock
@@ -100,6 +101,8 @@ public final class RadiationEcology {
 		}
 		RadiationConfig.Ecology eco = config.ecology;
 		boolean animals = eco.animalsTakeRads && (++runs % 2 == 0);
+		boolean storage = config.food.enabled && now - foodAt >= config.food.storageIntervalTicks;
+		if (storage || now < foodAt) foodAt = now;
 		for (ServerLevel level : server.getAllLevels()) {
 			LongOpenHashSet hot = HOT.get(RadiationTracker.dimensionId(level));
 			if (hot == null || hot.isEmpty()) {
@@ -117,6 +120,9 @@ public final class RadiationEcology {
 			}
 			if (animals) {
 				animals(level, hot, eco, config, eco.intervalTicks * 2 / 20f);
+			}
+			if (storage) {
+				food(level, hot, config.food.storageIntervalTicks / 20f);
 			}
 		}
 	}
@@ -216,6 +222,20 @@ public final class RadiationEcology {
 			RadiationTracker.applySickness(mob, config.stageIndexFor(rads), config, (int) (seconds * 20) + 60);
 			if (rads >= config.maxRads) {
 				mob.hurtServer(level, level.damageSources().source(ModRegistry.RADIATION_DAMAGE), Float.MAX_VALUE);
+			}
+		}
+	}
+
+	// ------------------------------------------------------------------ food in storage
+
+	private static void food(ServerLevel level, LongOpenHashSet hot, float seconds) {
+		for (long chunk : hot.toLongArray()) {
+			var c = level.getChunkSource().getChunkNow(ChunkPos.getX(chunk), ChunkPos.getZ(chunk));
+			if (c != null) dev.radiation.food.FoodContamination.storage(level, c, seconds);
+		}
+		for (Entity e : level.getAllEntities()) {
+			if (e instanceof net.minecraft.world.entity.item.ItemEntity item && item.isAlive() && hot.contains(ChunkPos.pack(item.blockPosition()))) {
+				dev.radiation.food.FoodContamination.onGround(item, rateAt(level, item.blockPosition()), seconds);
 			}
 		}
 	}

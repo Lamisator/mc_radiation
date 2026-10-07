@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.6.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.7.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -164,6 +164,36 @@ herbs take several times more. A rate of 1 rad/s (36 Gy an hour) kills most plan
 Only the land near radiation is looked at, a few surface blocks per chunk every second, so it costs little
 and changes come over a few minutes rather than at once. All thresholds are in the config (`ecology`).
 
+## Contaminated food
+
+Since 1.7.0 **every food has a contamination**: the rads you take up when you eat it. The tooltip shows it on every
+food (and on what food is made of: wheat, sugar, eggs, milk, pumpkins... the item tag `radiation:contaminable`) -
+*Contamination: none* for clean food. Armour and Rad-X do not help: what you eat is inside you.
+
+Food gets contaminated
+- **in the field**: a crop takes up the radiation of the ground it grows on. What a harvest carries depends on the dose
+  rate at the plant when it is harvested: 20 rad per item for every rad/s. Wheat from a field at 0.5 rad/s: 10 rad a
+  sheaf. Seeds stay clean. The same goes for berries, apples from leaves, melons, pumpkins, cocoa, mushrooms, sugar cane.
+- **in the animal**: meat, eggs and the like from an irradiated animal carry a tenth of its rads: a cow with 400 rads
+  gives steaks at 50 rad.
+- **in storage**: food kept in a chest, barrel, furnace, hopper... or lying on the ground where it is irradiated takes up
+  0.005 rad per item for every rad it is exposed to: an hour at 1 rad/s makes 18 rad. **Food in your inventory takes up
+  nothing more** - carry it out of the zone.
+- **by processing**: what is made of contaminated food is contaminated too. Crafting shares the contamination of all
+  ingredients out over the result - three sheaves of wheat at 10 rad bake a loaf at 30 rad - and cooking keeps it: a raw
+  steak at 50 rad is a cooked steak at 50 rad.
+
+Harvests and products are rounded to a few steps (0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10, 20...) so that they stack.
+
+| Contaminated bread | ...and a steak from an irradiated cow |
+|---|---|
+| ![](docs/img/food_tooltip_bread.jpg) | ![](docs/img/food_tooltip_beef.jpg) |
+
+In a test: wheat from a field at 0.53 rad/s was 10 rad a sheaf and the bread baked from it 30 rad; two raw steaks at 50
+rad came out of a furnace as two cooked steaks at 50 rad; a minute next to a 1.9 rad/s source made the bread in a chest,
+the wheat beside it and an apple on the ground 5.8 rad each (with 10 times the normal uptake), while the bread in the
+player's inventory stayed clean; eating a 30 rad loaf took the player from 0 to 30 rads.
+
 ## Radioactive clouds, wind and rain
 
 Since 1.5.0 radioactivity can travel: a burning reactor core ([Fission](https://github.com/Lamisator/fission)), a
@@ -255,6 +285,11 @@ In Prism, that's **Edit → Minecraft folder → config**.
 | `ecology.grassToDirtRads` | 2.0 | Grass, podzol, moss and farmland turn to dirt |
 | `ecology.soilToSandRads` | 25.0 | Dirt turns to sand |
 | `ecology.animalsTakeRads` | true | Animals and villagers take up rads exactly like players (from 0.01 rad/s): the same sickness stages and effects, the same share of their health lost, death at `maxRads` |
+| `food.enabled` | true | Food carries contamination and eating it gives rads |
+| `food.cropUptake` | 20 | Rad per harvested item for each rad/s at the plant |
+| `food.animalShare` | 0.1 | Share of an animal's rads in each piece of meat (egg...) it gives |
+| `food.storageUptake` | 0.005 | Rad per item for each rad of exposure in a container or on the ground |
+| `food.storageIntervalTicks` | 100 | How often stored food is looked at |
 | `clouds.maxAgeMinutes` | 120 | The longest a radioactive cloud drifts |
 | `clouds.spreadPerBlock` | 0.012 | How much wider it gets per block (wider = thinner); 1.5 had 0.025 |
 | `clouds.fadedRads` | 0.001 | A cloud is gone when the dose rate under it falls below this |
@@ -299,9 +334,10 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.6.0.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.7.0.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
+`./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).
 
 `tools/gen_assets.py` regenerates the textures and sounds (needs Pillow, numpy and soundfile, plus
 the vanilla textures extracted from the Minecraft client jar).

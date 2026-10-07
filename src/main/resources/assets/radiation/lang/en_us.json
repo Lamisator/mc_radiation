@@ -87,5 +87,8 @@
   "block.radiation.reinforced_concrete": "Reinforced Concrete",
   "block.radiation.reinforced_concrete.desc": "Steel-reinforced: shrugs off explosions and absorbs 55 % of radiation per block",
   "block.radiation.heavy_concrete": "Heavy Concrete",
-  "block.radiation.heavy_concrete.desc": "Iron-ore aggregate: blast-proof and absorbs 75 % of radiation per block"
+  "block.radiation.heavy_concrete.desc": "Iron-ore aggregate: blast-proof and absorbs 75 % of radiation per block",
+  "message.radiation.ate_contaminated": "Contaminated food: +%s rad",
+  "tooltip.radiation.contamination": "☢ Contamination: %s rad",
+  "tooltip.radiation.clean": "☢ Contamination: none"
 }

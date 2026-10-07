@@ -5,6 +5,6 @@
 	"name": "Radiation screenshot tests",
 	"environment": "*",
 	"entrypoints": {
-		"fabric-client-gametest": ["dev.radiation.gametest.VaultTour", "dev.radiation.gametest.EcologyTour"]
+		"fabric-client-gametest": ["dev.radiation.gametest.VaultTour", "dev.radiation.gametest.EcologyTour", "dev.radiation.gametest.FoodTour"]
 	}
 }

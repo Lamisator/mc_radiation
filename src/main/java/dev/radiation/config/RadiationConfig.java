@@ -67,6 +67,9 @@ public class RadiationConfig {
 	// --- what radiation does to the land ---
 	public Ecology ecology = new Ecology();
 
+	// --- contaminated food ---
+	public Food food = new Food();
+
 	// --- radioactive clouds (burning reactors, nuclear detonations) ---
 	public Clouds clouds = new Clouds();
 
@@ -188,6 +191,29 @@ public class RadiationConfig {
 		}
 	}
 
+	/**
+	 * Contaminated food: every food carries the rads you take up when you eat it (see FoodContamination). The ground's
+	 * radiation goes into crops, an animal's into its meat, a store's into the food kept in it.
+	 */
+	public static class Food {
+		public boolean enabled = true;
+		/** Rad per harvested item for each rad/s at the plant (wheat from a field at 0.5 rad/s: 10 rad). */
+		public float cropUptake = 20f;
+		/** Share of an animal's rads in each piece of meat (or egg...) it gives (a cow at 400 rads: 40 rad a steak). */
+		public float animalShare = 0.1f;
+		/** Rad per item for each rad of exposure in a container or on the ground (an hour at 1 rad/s: 18 rad). */
+		public float storageUptake = 0.005f;
+		/** How often stored food is looked at, in ticks. */
+		public int storageIntervalTicks = 100;
+
+		void sanitize() {
+			cropUptake = Math.max(0, cropUptake);
+			animalShare = Math.max(0, animalShare);
+			storageUptake = Math.max(0, storageUptake);
+			storageIntervalTicks = Math.clamp(storageIntervalTicks, 20, 24000);
+		}
+	}
+
 	/** Radioactive clouds: how long they last and how much fallout they leave. */
 	public static class Clouds {
 		/** The longest a cloud drifts, in minutes (of play at 20 ticks per second), before it is gone. */
@@ -276,6 +302,8 @@ public class RadiationConfig {
 		if (protectiveItems == null) protectiveItems = new LinkedHashMap<>();
 		if (ecology == null) ecology = new Ecology();
 		ecology.sanitize();
+		if (food == null) food = new Food();
+		food.sanitize();
 		if (clouds == null) clouds = new Clouds();
 		clouds.sanitize();
 		shieldingPerBlock = Math.clamp(shieldingPerBlock, 0f, 1f);

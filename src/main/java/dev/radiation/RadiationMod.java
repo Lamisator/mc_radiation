@@ -35,6 +35,7 @@ public class RadiationMod implements ModInitializer {
 	public void onInitialize() {
 		RadiationConfig.load();
 		ModRegistry.init();
+		dev.radiation.food.FoodContamination.init();
 		VaultBlocks.init();
 
 		PayloadTypeRegistry.clientboundPlay().register(RadiationStatusPayload.TYPE, RadiationStatusPayload.CODEC);

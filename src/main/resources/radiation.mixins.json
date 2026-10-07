@@ -4,7 +4,10 @@
 	"package": "dev.radiation.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"BlockStateRandomTickMixin"
+		"BlockStateRandomTickMixin",
+		"RecipeContaminationMixin$Shaped",
+		"RecipeContaminationMixin$Shapeless",
+		"RecipeContaminationMixin$Single"
 	],
 	"injectors": {
 		"defaultRequire": 1
