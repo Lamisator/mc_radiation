@@ -116,8 +116,7 @@ public final class Clouds {
 		CELLS.clear();
 		long now = server.overworld().getGameTime();
 		for (RadiationSources.PointSource s : RadiationTracker.sources().sources) {
-			if (s.name.startsWith("nuke_") && s.lifetimeTicks == 0) {
-				nuclear(s, now);
+			if (nuclear(s, now)) {
 				RadiationTracker.sources().markDirty();
 			}
 			if (s.name.startsWith("fallout")) {
@@ -303,20 +302,36 @@ public final class Clouds {
 	}
 
 	/**
-	 * Ground zero of a nuclear detonation (RedButton's {@code nuke_*} sources, which come without a half-life) is fallout
-	 * too: it decays like iodine with a long-lived part and is gone after falloutLifetimeDays. Sources from before 1.9.0
-	 * start decaying now.
+	 * Ground zero of a nuclear detonation (RedButton's {@code nuke_<warhead>_*} sources, which come without a half-life) is
+	 * fallout too, and it is gone after clouds.groundZeroDays for its warhead: a tactical nuke's after a day, a Tsar's after
+	 * 40. Its half-lives shrink with that lifetime (a fifth of it for the iodine part, half for the long-lived part, at
+	 * most fallout's). Sources from before 1.9.0 start decaying now; already decaying ones follow the current config.
+	 *
+	 * @return whether the source changed
 	 */
-	public static void nuclear(RadiationSources.PointSource s, long now) {
-		if (s.name == null || !s.name.startsWith("nuke_") || s.lifetimeTicks > 0) {
-			return;
+	public static boolean nuclear(RadiationSources.PointSource s, long now) {
+		if (s.name == null || !s.name.startsWith("nuke_")) {
+			return false;
+		}
+		dev.radiation.config.RadiationConfig.Clouds cfg = dev.radiation.config.RadiationConfig.get().clouds;
+		String rest = s.name.substring(5);
+		String warhead = rest.indexOf('_') < 0 ? rest : rest.substring(0, rest.indexOf('_'));
+		long lifetime = Math.round(cfg.groundZeroDays.getOrDefault(warhead, cfg.falloutLifetimeDays) * 24000.0);
+		long half = lifetime > 0 ? Math.min(IODINE_HALF_LIFE, lifetime / 5) : IODINE_HALF_LIFE;
+		long longHalf = Math.round(cfg.falloutLongHalfLifeDays * 24000.0);
+		if (lifetime > 0) {
+			longHalf = longHalf > 0 ? Math.min(longHalf, lifetime / 2) : lifetime / 2;
 		}
 		if (s.halfLifeTicks <= 0) {
-			s.halfLifeTicks = IODINE_HALF_LIFE;
-			s.longLivedFraction = LONG_LIVED;
 			s.startTime = now;
+		} else if (s.lifetimeTicks == lifetime && s.halfLifeTicks == half && s.longHalfLifeTicks == longHalf) {
+			return false;
 		}
-		lasting(s);
+		s.halfLifeTicks = half;
+		s.longLivedFraction = LONG_LIVED;
+		s.longHalfLifeTicks = longHalf;
+		s.lifetimeTicks = lifetime;
+		return true;
 	}
 
 	/** Fallout does not stay forever: its caesium decays too, and it is gone after falloutLifetimeDays. */

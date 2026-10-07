@@ -101,6 +101,9 @@ public class RadiationSources {
 
 		public String describe() {
 			String decay = halfLifeTicks > 0 ? String.format(Locale.ROOT, ", half-life %.1f days", halfLifeTicks / 24000.0) : "";
+			if (lifetimeTicks > 0) {
+				decay += String.format(Locale.ROOT, ", gone after %.1f days", lifetimeTicks / 24000.0);
+			}
 			return String.format(Locale.ROOT, "%s [%s] (%.1f %.1f %.1f), %.2f rad/s, radius %.1f, %s%s%s",
 					name, dimension, x, y, z, rads, radius, falloff.name().toLowerCase(Locale.ROOT), shielded ? "" : ", unshielded", decay);
 		}

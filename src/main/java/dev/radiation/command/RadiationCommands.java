@@ -228,6 +228,7 @@ public final class RadiationCommands {
 		source.radius = FloatArgumentType.getFloat(ctx, "radius");
 		source.falloff = falloff;
 		source.shielded = shielded;
+		dev.radiation.world.Clouds.nuclear(source, ctx.getSource().getLevel().getGameTime());
 		sources.sources.add(source);
 		sources.save();
 		ctx.getSource().sendSuccess(() -> Component.translatable("commands.radiation.source.added", source.describe()), true);

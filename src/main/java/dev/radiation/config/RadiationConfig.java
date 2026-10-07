@@ -242,6 +242,20 @@ public class RadiationConfig {
 		public float falloutLongHalfLifeDays = 20;
 		/** Fallout is gone completely this many Minecraft days after it last fell (fading out over the last fifth). 0 = never. */
 		public float falloutLifetimeDays = 40;
+		/**
+		 * How long a nuclear detonation's ground zero (RedButton's {@code nuke_<warhead>_...} sources) stays radioactive,
+		 * in Minecraft days, per warhead; the smaller the warhead, the sooner it is gone. Others: falloutLifetimeDays.
+		 */
+		public Map<String, Float> groundZeroDays = defaultGroundZeroDays();
+
+		static Map<String, Float> defaultGroundZeroDays() {
+			Map<String, Float> m = new LinkedHashMap<>();
+			m.put("tactical", 1f);
+			m.put("fission", 5f);
+			m.put("thermonuclear", 15f);
+			m.put("tsar", 40f);
+			return m;
+		}
 		/** How much wider a cloud gets per block it drifts: the faster it spreads, the sooner it is too thin to matter. */
 		public float spreadPerBlock = 0.012f;
 		/** A cloud is gone when the dose rate under it falls below this (rad/s). */
@@ -259,6 +273,10 @@ public class RadiationConfig {
 			maxTravelBlocks = Math.max(100, maxTravelBlocks);
 			falloutLongHalfLifeDays = Math.max(0, falloutLongHalfLifeDays);
 			falloutLifetimeDays = Math.max(0, falloutLifetimeDays);
+			if (groundZeroDays == null) {
+				groundZeroDays = defaultGroundZeroDays();
+			}
+			groundZeroDays.replaceAll((k, v) -> v == null ? falloutLifetimeDays : Math.max(0, v));
 			fadedRads = Math.max(0.0001f, fadedRads);
 			falloutFactor = Math.clamp(falloutFactor, 0f, 1000f);
 			rainFactor = Math.clamp(rainFactor, 0f, 100f);

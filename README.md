@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.9.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.9.1.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -224,7 +224,17 @@ source.
 over its last 500 blocks it thins out to nothing, and it is gone after 40 minutes at the latest, or sooner when it has
 spread too thin. Fallout is gone completely **40 Minecraft days** after it landed (`clouds.falloutLifetimeDays`); over the
 last fifth of that time it fades to zero. A nuclear detonation's **ground zero** ([RedButton](https://github.com/Lamisator/mc_redbutton))
-fades the same way: before 1.9.0 it stayed forever. Sources from older worlds are converted when the world loads. What
+fades away too: before 1.9.0 it stayed forever. Since 1.9.1 **the smaller the warhead, the sooner** (`clouds.groundZeroDays`):
+
+| Warhead | Ground zero gone after | Half-life |
+|---|---|---|
+| Tactical | 1 day | 0.2 days |
+| Fission | 5 days | 1 day |
+| Thermonuclear | 15 days | 3 days |
+| Tsar | 40 days | 8 days |
+
+In a test, a tactical ground zero went from 30 rad/s to 15 after a fifth of a day, 3 after four fifths and nothing after a
+day; a Tsar's was still at 229 of 250 rad/s. Sources from older worlds are converted when the world loads. What
 the radiation left in food and crops stays (see above).
 
 **Since 1.6.0 clouds contaminate much more** (all of it in the config, `clouds`): a cloud spreads
@@ -320,8 +330,9 @@ on load; 1.8.0 empties `food.notContaminating` if it still holds the old default
 | `food.radsPerNutrition` | 4 | The most a food carries per point of nutrition (bread: 20 rad); 0 for no cap |
 | `clouds.maxAgeMinutes` | 40 | The longest a radioactive cloud drifts |
 | `clouds.maxTravelBlocks` | 2000 | The farthest a cloud travels; it thins out over the last quarter |
-| `clouds.falloutLongHalfLifeDays` | 20 | Half-life of fallout's long-lived part (and ground zero's) |
-| `clouds.falloutLifetimeDays` | 40 | Fallout and ground zero are gone completely after this many days |
+| `clouds.falloutLongHalfLifeDays` | 20 | Half-life of fallout's long-lived part (ground zero's is at most half its lifetime) |
+| `clouds.falloutLifetimeDays` | 40 | Fallout is gone completely after this many days |
+| `clouds.groundZeroDays` | tactical 1, fission 5, thermonuclear 15, tsar 40 | A nuclear detonation's ground zero is gone after this many days, per warhead; half-lives scale with it |
 | `clouds.spreadPerBlock` | 0.012 | How much wider it gets per block (wider = thinner); 1.5 had 0.025 |
 | `clouds.fadedRads` | 0.001 | A cloud is gone when the dose rate under it falls below this |
 | `clouds.falloutFactor` | 5.0 | All fallout multiplied by this (1 = as in 1.5) |
@@ -356,7 +367,7 @@ Since 1.4.0 point sources can decay: `addSource(..., halfLifeTicks, longLivedFra
 every `halfLifeTicks` game ticks except for a part that stays (fallout: iodine fades, caesium stays), and that is removed
 by itself once it is down to nothing. `updateSource(level, name, pos, rads, radius)` moves a source, e.g. a drifting
 cloud. Fission's radioactive clouds and fallout use both. Since 1.9.0 sources named `nuke_...` (RedButton's ground zero)
-get fallout's half-lives and lifetime by themselves.
+get a half-life and lifetime by themselves, from `clouds.groundZeroDays` for the warhead in their name.
 
 ## Building from source
 
@@ -366,7 +377,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.9.0.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.9.1.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).
