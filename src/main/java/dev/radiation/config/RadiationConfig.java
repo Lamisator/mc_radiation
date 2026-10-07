@@ -67,6 +67,9 @@ public class RadiationConfig {
 	// --- what radiation does to the land ---
 	public Ecology ecology = new Ecology();
 
+	// --- radioactive clouds (burning reactors, nuclear detonations) ---
+	public Clouds clouds = new Clouds();
+
 	// --- protection ---
 	/** Fraction of incoming radiation blocked by each worn item. Combined additively, capped by maxProtection. */
 	public Map<String, Float> protectiveItems = defaultProtectiveItems();
@@ -123,6 +126,8 @@ public class RadiationConfig {
 	 */
 	public static class Ecology {
 		public boolean enabled = true;
+		/** Below this dose rate animals are not looked at (a lethal dose would take more than a day). */
+		public static final float ANIMAL_FLOOR = 0.01f;
 		/** Crops, saplings, stems, berries, cane and cactus grow at {@link #cropGrowthAtSlowdown} of their normal speed from here. */
 		public float cropSlowdownRads = 0.01f;
 		public float cropGrowthAtSlowdown = 0.5f;
@@ -137,8 +142,12 @@ public class RadiationConfig {
 		public float grassToDirtRads = 2.0f;
 		/** Dirt of every kind turns to sand: nothing lives in the soil any more and it crumbles. */
 		public float soilToSandRads = 25.0f;
-		/** Animals and villagers (not undead) take up rads like players and fall ill and die of them. 0 = never. */
-		public float animalHarmRads = 0.2f;
+		/**
+		 * Animals and villagers (not undead) take up rads exactly like players: from any dose rate (where it is at least
+		 * 0.01 rad/s), with the same sickness stages and effects, losing the same share of their health, and dying at
+		 * {@code maxRads}. false = they are immune.
+		 */
+		public boolean animalsTakeRads = true;
 		/** How often the land near radiation is looked at, in ticks, and how many surface blocks per chunk each time. */
 		public int intervalTicks = 20;
 		public int samplesPerChunk = 4;
@@ -160,7 +169,7 @@ public class RadiationConfig {
 		/** The lowest dose rate that does anything. */
 		public float lowestThreshold() {
 			float low = Float.MAX_VALUE;
-			for (float t : new float[] {cropSlowdownRads, leafDeathRads, plantDeathRads, grassToDirtRads, soilToSandRads, animalHarmRads}) {
+			for (float t : new float[] {cropSlowdownRads, leafDeathRads, plantDeathRads, grassToDirtRads, soilToSandRads, animalsTakeRads ? ANIMAL_FLOOR : 0}) {
 				if (t > 0) {
 					low = Math.min(low, t);
 				}
@@ -176,6 +185,31 @@ public class RadiationConfig {
 			intervalTicks = Math.max(1, intervalTicks);
 			samplesPerChunk = Math.clamp(samplesPerChunk, 0, 256);
 			changeChance = Math.clamp(changeChance, 0f, 1f);
+		}
+	}
+
+	/** Radioactive clouds: how long they last and how much fallout they leave. */
+	public static class Clouds {
+		/** The longest a cloud drifts, in minutes (of play at 20 ticks per second), before it is gone. */
+		public int maxAgeMinutes = 120;
+		/** How much wider a cloud gets per block it drifts: the faster it spreads, the sooner it is too thin to matter. */
+		public float spreadPerBlock = 0.012f;
+		/** A cloud is gone when the dose rate under it falls below this (rad/s). */
+		public float fadedRads = 0.001f;
+		/** All fallout a cloud leaves behind is multiplied by this. 1 = Radiation 1.5.0/1.5.1. */
+		public float falloutFactor = 5.0f;
+		/** Where it rains under a cloud, it drops fallout this many times as heavily per block (and is used up sooner). */
+		public float rainFactor = 5.0f;
+		/** Rain also washes a cloud out: it loses this many times as much per block as in dry weather. 1 = rain does not wash it out faster. */
+		public float rainWashout = 20.0f;
+
+		void sanitize() {
+			maxAgeMinutes = Math.clamp(maxAgeMinutes, 1, 24 * 60);
+			spreadPerBlock = Math.clamp(spreadPerBlock, 0f, 1f);
+			fadedRads = Math.max(0.0001f, fadedRads);
+			falloutFactor = Math.clamp(falloutFactor, 0f, 1000f);
+			rainFactor = Math.clamp(rainFactor, 0f, 100f);
+			rainWashout = Math.clamp(rainWashout, 1f, 100f);
 		}
 	}
 
@@ -242,6 +276,8 @@ public class RadiationConfig {
 		if (protectiveItems == null) protectiveItems = new LinkedHashMap<>();
 		if (ecology == null) ecology = new Ecology();
 		ecology.sanitize();
+		if (clouds == null) clouds = new Clouds();
+		clouds.sanitize();
 		shieldingPerBlock = Math.clamp(shieldingPerBlock, 0f, 1f);
 		concreteShielding = Math.clamp(concreteShielding, 0f, 1f);
 		heavyShielding = Math.clamp(heavyShielding, 0f, 1f);

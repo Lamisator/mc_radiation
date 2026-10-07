@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.5.1.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.6.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -151,7 +151,7 @@ rate at the spot, so concrete, water and earth protect a field exactly as they p
 | 1 rad/s | Crops, flowers, grass, ferns and saplings die; dead bushes are left where they can stand |
 | 2 rad/s | Grass, podzol, moss and farmland die back to bare dirt |
 | 25 rad/s | Dirt of every kind turns to sand: nothing lives in the soil any more |
-| 0.2 rad/s | Animals and villagers take up rads like players: weak and slow from 250, poisoned from 750, dead at 1000. Undead do not care. |
+| 0.01 rad/s | Animals and villagers take up rads exactly like players (since 1.6.0): the same sickness stages and effects (hunger from 250, weakness from 500, slowness from 750), the same share of their health lost, dead at 1000. Undead do not care. |
 
 Is that realistic? Roughly, but plants are slower to show it than here: 0.01 rad/s is 8.6 Gy a day, which
 stunts grain within days; pines at Chernobyl (the Red Forest) died after a few hundred gray, grasses and
@@ -172,10 +172,16 @@ nuclear detonation ([RedButton](https://github.com/Lamisator/mc_redbutton)) or a
 ground, a nuclear detonation's up to 375; it climbs another 80 as it drifts) and drifts with the wind, spreading as it goes. The ground under it gets its radiation (people indoors are
 shielded by their roofs), and it leaves **fallout** behind: sources that fade like iodine-131 (half-life 8 days)
 except for about 15 % that stays like caesium-137. Fallout that lands in the same 48-block square adds up into one
-source. A dry cloud fades away when it has spread too thin, after a few kilometres.
+source. A dry cloud fades away when it has spread too thin, after several kilometres, or after two hours.
+
+**Since 1.6.0 clouds last much longer and contaminate much more** (all of it in the config, `clouds`): a cloud spreads
+half as fast, lives up to two hours and leaves five times the fallout. In a test, a 3 rad/s cloud (wind 10 m/s) was
+still 1.2 rad/s strong 490 blocks downwind in dry weather and left a trail of fallout up to 25 rad/s; the same cloud in
+rain was washed out to 0.1 rad/s within 500 blocks and left fallout up to 85 rad/s near where it rained out.
+Fallout also lands on the ground where nobody is near (1.5 could leave it hanging at the height the cloud started).
 
 **Rain washes clouds out.** Where it rains (or snows) under a cloud, it drops its fallout four times as often and
-five times as heavily per block, so it is gone after a few hundred blocks - and leaves hot spots where it rained, as
+five times as heavily per block (`clouds.rainFactor`), so it is gone after a few hundred blocks - and leaves hot spots where it rained, as
 Chernobyl's fallout did. In a test, two equal clouds after 200 blocks: the dry one still 1.5 rad/s under it, its
 hottest fallout 5 rad/s; the one in rain 0.5 rad/s, its fallout up to 14 rad/s.
 
@@ -248,7 +254,13 @@ In Prism, that's **Edit → Minecraft folder → config**.
 | `ecology.plantDeathRads` | 1.0 | Crops, flowers, grass, ferns and saplings die |
 | `ecology.grassToDirtRads` | 2.0 | Grass, podzol, moss and farmland turn to dirt |
 | `ecology.soilToSandRads` | 25.0 | Dirt turns to sand |
-| `ecology.animalHarmRads` | 0.2 | Animals and villagers start taking up rads (0 = never) |
+| `ecology.animalsTakeRads` | true | Animals and villagers take up rads exactly like players (from 0.01 rad/s): the same sickness stages and effects, the same share of their health lost, death at `maxRads` |
+| `clouds.maxAgeMinutes` | 120 | The longest a radioactive cloud drifts |
+| `clouds.spreadPerBlock` | 0.012 | How much wider it gets per block (wider = thinner); 1.5 had 0.025 |
+| `clouds.fadedRads` | 0.001 | A cloud is gone when the dose rate under it falls below this |
+| `clouds.falloutFactor` | 5.0 | All fallout multiplied by this (1 = as in 1.5) |
+| `clouds.rainFactor` | 5.0 | Rain: this many times as much fallout per block |
+| `clouds.rainWashout` | 20.0 | Rain: the cloud is used up this many times as fast per block |
 | `ecology.intervalTicks`, `ecology.samplesPerChunk`, `ecology.changeChance` | 20, 4, 0.5 | How often, how many surface blocks per chunk near radiation, and the chance a block above a threshold changes each time: higher is faster |
 
 **`config/radiation-client.json`**: per-player display settings:
@@ -287,7 +299,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.5.1.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.6.0.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 

@@ -210,6 +210,35 @@ public final class RadiationTracker {
 		}
 	}
 
+	/**
+	 * A sick animal or villager: the effects of its stage, and the same share of its health lost as a player's (a
+	 * stage that takes 8 of a player's 20 half-hearts takes 40 % of a cow's).
+	 */
+	public static void applySickness(net.minecraft.world.entity.LivingEntity mob, int stage, RadiationConfig config, int duration) {
+		AttributeInstance maxHealth = mob.getAttribute(Attributes.MAX_HEALTH);
+		double share = stage >= 0 ? config.stages.get(stage).maxHealthModifier / 20.0 : 0;
+		if (maxHealth != null) {
+			if (share == 0) {
+				maxHealth.removeModifier(SICKNESS_MODIFIER);
+			} else {
+				maxHealth.addOrUpdateTransientModifier(new AttributeModifier(SICKNESS_MODIFIER, Math.max(-0.95, share), AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+				if (mob.getHealth() > mob.getMaxHealth()) {
+					mob.setHealth(mob.getMaxHealth());
+				}
+			}
+		}
+		if (stage < 0) {
+			return;
+		}
+		mob.addEffect(new MobEffectInstance(ModRegistry.RADIATION_SICKNESS, duration, stage, true, false, true));
+		for (RadiationConfig.EffectEntry entry : config.stages.get(stage).effects) {
+			Holder<MobEffect> effect = lookupEffect(entry.effect);
+			if (effect != null) {
+				mob.addEffect(new MobEffectInstance(effect, duration, Math.max(0, entry.amplifier), true, false, true));
+			}
+		}
+	}
+
 	private static void applyMaxHealthModifier(ServerPlayer player, double amount) {
 		AttributeInstance maxHealth = player.getAttribute(Attributes.MAX_HEALTH);
 		if (maxHealth == null) {

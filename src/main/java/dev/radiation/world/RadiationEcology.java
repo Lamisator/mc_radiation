@@ -99,7 +99,7 @@ public final class RadiationEcology {
 			ratesSince = now;
 		}
 		RadiationConfig.Ecology eco = config.ecology;
-		boolean animals = eco.animalHarmRads > 0 && (++runs % 2 == 0);
+		boolean animals = eco.animalsTakeRads && (++runs % 2 == 0);
 		for (ServerLevel level : server.getAllLevels()) {
 			LongOpenHashSet hot = HOT.get(RadiationTracker.dimensionId(level));
 			if (hot == null || hot.isEmpty()) {
@@ -195,30 +195,27 @@ public final class RadiationEcology {
 
 	// ------------------------------------------------------------------ animals
 
+	/** Animals and villagers: rads, sickness stages and death exactly as for players (see RadiationTracker). */
 	private static void animals(ServerLevel level, LongOpenHashSet hot, RadiationConfig.Ecology eco, RadiationConfig config, float seconds) {
 		for (Entity e : level.getAllEntities()) {
-			if (!(e instanceof Mob mob) || !mob.isAlive() || mob.is(EntityTypeTags.UNDEAD)
-					|| !hot.contains(ChunkPos.pack(mob.blockPosition()))) {
+			if (!(e instanceof Mob mob) || !mob.isAlive() || mob.is(EntityTypeTags.UNDEAD)) {
 				continue;
 			}
-			float rate = RadiationTracker.exposureAt(level, mob.position().add(0, mob.getBbHeight() * 0.5, 0), null);
 			Float had = mob.getAttached(ModRegistry.RADS);
 			float rads = had == null ? 0 : had;
-			if (rate < eco.animalHarmRads && rads <= 0) {
+			boolean near = hot.contains(ChunkPos.pack(mob.blockPosition()));
+			if (!near && rads <= 0) {
 				continue;
 			}
-			rads = Math.max(0, rads + rate * seconds - config.naturalDecayPerSecond * seconds);
+			float rate = near ? RadiationTracker.exposureAt(level, mob.position().add(0, mob.getBbHeight() * 0.5, 0), null) : 0;
+			rads = Math.clamp(rads + rate * seconds - config.naturalDecayPerSecond * seconds, 0, config.maxRads);
+			if (rads <= 0 && had == null) {
+				continue;
+			}
 			mob.setAttached(ModRegistry.RADS, rads);
-			int duration = (int) (seconds * 20) + 60;
+			RadiationTracker.applySickness(mob, config.stageIndexFor(rads), config, (int) (seconds * 20) + 60);
 			if (rads >= config.maxRads) {
 				mob.hurtServer(level, level.damageSources().source(ModRegistry.RADIATION_DAMAGE), Float.MAX_VALUE);
-			} else if (rads >= config.maxRads * 0.75f) {
-				mob.addEffect(new MobEffectInstance(MobEffects.POISON, duration, 0, true, false));
-				mob.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, duration, 1, true, false));
-				mob.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, 1, true, false));
-			} else if (rads >= config.maxRads * 0.25f) {
-				mob.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, duration, 0, true, false));
-				mob.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, 0, true, false));
 			}
 		}
 	}

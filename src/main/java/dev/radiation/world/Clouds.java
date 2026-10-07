@@ -47,17 +47,17 @@ import java.util.UUID;
 public final class Clouds {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeSpecialFloatingPointValues().create();
 	private static final int UPDATE_TICKS = 10;
-	/** How much a cloud widens per block travelled. */
-	private static final double SPREAD = 0.025;
-	/** Dry: a deposit every 32 blocks, taking 0.8 % of the cloud; in rain every 8 blocks, taking 4 %. */
+	/**
+	 * Dry: a deposit every 32 blocks, taking 0.8 % of the cloud; in rain every 8 blocks, taking {@code rainWashout} times
+	 * as much per block (4 % by default) and leaving {@code rainFactor} times as much fallout. All fallout is multiplied by
+	 * {@code falloutFactor} (config: {@code clouds}).
+	 */
 	private static final double DRY_EVERY = 32, DRY_TAKES = 0.008, DRY_RATIO = 0.4;
-	private static final double WET_EVERY = 8, WET_TAKES = 0.04, WET_RATIO = 2.0;
+	private static final double WET_EVERY = 8;
 	/** Iodine-131: 8 days; about 15 % of the early fallout dose rate is long-lived caesium. Game time: 1 day = 24000 ticks. */
 	private static final long IODINE_HALF_LIFE = 8 * 24000L;
 	private static final float LONG_LIVED = 0.15F;
 	private static final int CELL = 48;
-	private static final double FADED = 0.002;
-	private static final long MAX_AGE = 30 * 60 * 20;
 	private static final int PARTICLE_RANGE = 400;
 	private static final double VISIBLE = 1000;
 
@@ -153,7 +153,7 @@ public final class Clouds {
 	 * blocks wide; it floats {@code altitude} blocks above the ground once it has risen.
 	 */
 	public static void release(ServerLevel level, Vec3 at, double strength, double radius, double altitude) {
-		if (strength <= FADED) return;
+		if (strength <= dev.radiation.config.RadiationConfig.get().clouds.fadedRads) return;
 		Cloud c = new Cloud();
 		c.dimension = RadiationTracker.dimensionId(level);
 		c.x = at.x;
@@ -220,13 +220,18 @@ public final class Clouds {
 		boolean loaded = level.hasChunk(bx >> 4, bz >> 4);
 		if (loaded) {
 			c.ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, bx, bz);
+		} else {
+			// nobody near: the ground as the world generator would make it, so that fallout lands on it and not in the air
+			var source = level.getChunkSource();
+			c.ground = source.getGenerator().getBaseHeight(bx, bz, Heightmap.Types.WORLD_SURFACE_WG, level, source.randomState());
 		}
 		c.raining = level.isRaining() && raining(level, new BlockPos(bx, (int) c.ground, bz));
 		double target = c.ground + c.altitude + Math.min(80, c.travelled * 0.05);
 		c.y += Math.clamp((target - c.y) * 0.15, -2.0, 8.0);
-		double radius = c.r0 + SPREAD * c.travelled;
+		dev.radiation.config.RadiationConfig.Clouds cfg = dev.radiation.config.RadiationConfig.get().clouds;
+		double radius = c.r0 + cfg.spreadPerBlock * c.travelled;
 		double onGround = c.activity * (c.r0 / radius) * (c.r0 / radius);
-		if (onGround < FADED || c.age > MAX_AGE) {
+		if (onGround < cfg.fadedRads || c.age > cfg.maxAgeMinutes * 60L * 20) {
 			return false;
 		}
 		double height = Math.max(0, c.y - c.ground);
@@ -237,11 +242,12 @@ public final class Clouds {
 					dev.radiation.api.RadiationApi.Falloff.LINEAR, true);
 		}
 		double every = c.raining ? WET_EVERY : DRY_EVERY;
+		double ratio = DRY_RATIO * cfg.falloutFactor * (c.raining ? cfg.rainFactor : 1);
+		double takes = c.raining ? DRY_TAKES * WET_EVERY / DRY_EVERY * cfg.rainWashout : DRY_TAKES;
 		while (c.sinceDeposit >= every) {
 			c.sinceDeposit -= every;
-			double ratio = c.raining ? WET_RATIO : DRY_RATIO;
 			deposit(level, c.x, c.ground + 1, c.z, ratio * onGround * every / radius, radius * 0.9 + 4);
-			c.activity *= 1 - (c.raining ? WET_TAKES : DRY_TAKES);
+			c.activity *= 1 - Math.min(0.9, takes);
 		}
 		c.radius = radius;
 		c.density = Math.clamp(Math.sqrt(onGround / 2.0), 0.15, 1.0);
@@ -330,7 +336,7 @@ public final class Clouds {
 	public static List<String> describe() {
 		List<String> lines = new ArrayList<>();
 		for (Cloud c : state.clouds) {
-			double radius = c.r0 + SPREAD * c.travelled;
+			double radius = c.r0 + dev.radiation.config.RadiationConfig.get().clouds.spreadPerBlock * c.travelled;
 			lines.add(String.format(Locale.ROOT, "cloud at %.0f %.0f %.0f, %.0f blocks out, %.0f wide, %.3f rad/s below%s", c.x, c.y, c.z, c.travelled,
 					2 * radius, c.activity * (c.r0 / radius) * (c.r0 / radius), c.raining ? ", raining out" : ""));
 		}
