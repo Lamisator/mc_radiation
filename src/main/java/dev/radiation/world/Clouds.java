@@ -162,7 +162,7 @@ public final class Clouds {
 		c.ground = at.y - 2;
 		c.activity = strength;
 		c.r0 = Math.max(4, radius);
-		c.altitude = Math.max(10, altitude);
+		c.altitude = Math.clamp(altitude, 10, 600);
 		c.id = ++nextId;
 		c.source = dev.radiation.api.RadiationApi.addSource(level, "radioactive_cloud", at, (float) strength, (float) (c.r0 + 8),
 				dev.radiation.api.RadiationApi.Falloff.LINEAR, true);
@@ -222,8 +222,8 @@ public final class Clouds {
 			c.ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, bx, bz);
 		}
 		c.raining = level.isRaining() && raining(level, new BlockPos(bx, (int) c.ground, bz));
-		double target = c.ground + c.altitude + Math.min(30, c.travelled * 0.02);
-		c.y += Math.clamp((target - c.y) * 0.15, -1.0, 4.0);
+		double target = c.ground + c.altitude + Math.min(80, c.travelled * 0.05);
+		c.y += Math.clamp((target - c.y) * 0.15, -2.0, 8.0);
 		double radius = c.r0 + SPREAD * c.travelled;
 		double onGround = c.activity * (c.r0 / radius) * (c.r0 / radius);
 		if (onGround < FADED || c.age > MAX_AGE) {

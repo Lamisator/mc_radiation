@@ -141,7 +141,7 @@ public final class RadiationCommands {
 					return lines.size();
 				}))
 				.then(literal("cloud").then(argument("pos", Vec3Argument.vec3()).then(argument("rads", FloatArgumentType.floatArg(0.001F, 1000))
-						.executes(ctx -> releaseCloud(ctx, 12, 40))
+						.executes(ctx -> releaseCloud(ctx, 12, 110))
 						.then(argument("radius", FloatArgumentType.floatArg(2, 200))
 								.executes(ctx -> releaseCloud(ctx, FloatArgumentType.getFloat(ctx, "radius"), 40))
 								.then(argument("altitude", FloatArgumentType.floatArg(5, 300))

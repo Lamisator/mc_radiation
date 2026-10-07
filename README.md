@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.5.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.5.1.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -168,8 +168,8 @@ and changes come over a few minutes rather than at once. All thresholds are in t
 
 Since 1.5.0 radioactivity can travel: a burning reactor core ([Fission](https://github.com/Lamisator/fission)), a
 nuclear detonation ([RedButton](https://github.com/Lamisator/mc_redbutton)) or an operator's
-`/radiation cloud <pos> <rad/s> [radius] [altitude]` releases a **radioactive cloud**. It rises to its height above the
-ground and drifts with the wind, spreading as it goes. The ground under it gets its radiation (people indoors are
+`/radiation cloud <pos> <rad/s> [radius] [altitude]` releases a **radioactive cloud**. It rises high into the sky (by default 110 blocks above the
+ground, a nuclear detonation's up to 375; it climbs another 80 as it drifts) and drifts with the wind, spreading as it goes. The ground under it gets its radiation (people indoors are
 shielded by their roofs), and it leaves **fallout** behind: sources that fade like iodine-131 (half-life 8 days)
 except for about 15 % that stays like caesium-137. Fallout that lands in the same 48-block square adds up into one
 source. A dry cloud fades away when it has spread too thin, after a few kilometres.
@@ -202,7 +202,7 @@ The rest need operator permission (or cheats enabled in singleplayer):
 | `/radiation set <players> <amount>` / `add <players> <amount>` | Change rads (negative `add` removes) |
 | `/radiation clear [players]` | Reset rads to 0 |
 | `/radiation reload` | Reload the config and the sources file |
-| `/radiation cloud <pos> <rads/s> [radius] [altitude]` | Release a radioactive cloud (default 12 blocks wide, 40 up) |
+| `/radiation cloud <pos> <rads/s> [radius] [altitude]` | Release a radioactive cloud (default 12 blocks wide, 110 up) |
 | `/radiation clouds` | The clouds on their way, and whether they are raining out |
 | `/radiation wind [set <towards°> <m/s> \| natural]` | Show the wind, fix it (0° = north, 90° = east) or let it change again |
 | `/wind` | Where the wind blows (for everyone) |
@@ -287,7 +287,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.5.0.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.5.1.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 
