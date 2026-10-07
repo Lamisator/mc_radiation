@@ -39,6 +39,7 @@ public class RadiationMod implements ModInitializer {
 
 		PayloadTypeRegistry.clientboundPlay().register(RadiationStatusPayload.TYPE, RadiationStatusPayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(RadiationSettingsPayload.TYPE, RadiationSettingsPayload.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(dev.radiation.network.CloudPayload.TYPE, dev.radiation.network.CloudPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(VaultDoorSettingsPayload.TYPE, VaultDoorSettingsPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(VaultDoorSettingsPayload.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
@@ -51,10 +52,20 @@ public class RadiationMod implements ModInitializer {
 			}
 		});
 
-		ServerLifecycleEvents.SERVER_STARTED.register(RadiationTracker::onServerStarted);
-		ServerLifecycleEvents.SERVER_STOPPING.register(RadiationTracker::onServerStopping);
-		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> RadiationTracker.saveSources());
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			RadiationTracker.onServerStarted(server);
+			dev.radiation.world.Clouds.load(server);
+		});
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			dev.radiation.world.Clouds.unload();
+			RadiationTracker.onServerStopping(server);
+		});
+		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> {
+			RadiationTracker.saveSources();
+			dev.radiation.world.Clouds.save();
+		});
 		ServerTickEvents.END_SERVER_TICK.register(RadiationTracker::tick);
+		ServerTickEvents.END_SERVER_TICK.register(dev.radiation.world.Clouds::tick);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> RadiationTracker.onPlayerJoin(handler.getPlayer()));
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> RadiationTracker.onPlayerLeave(handler.getPlayer()));
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> RadiationTracker.onPlayerRespawn(newPlayer));

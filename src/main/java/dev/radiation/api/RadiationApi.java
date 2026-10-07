@@ -97,6 +97,31 @@ public final class RadiationApi {
 		return true;
 	}
 
+	/**
+	 * Releases a radioactive cloud at {@code pos}: it rises to {@code altitude} blocks above the ground, drifts with the
+	 * wind, irradiates what is under it and leaves fallout (more where it rains, which also washes it out quickly).
+	 *
+	 * @param strength dose rate in rad/s on the ground right under it while it is {@code radius} blocks wide; it weakens as
+	 *                 it spreads and drops its fallout
+	 */
+	public static void releaseCloud(ServerLevel level, Vec3 pos, double strength, double radius, double altitude) {
+		dev.radiation.world.Clouds.release(level, pos, strength, radius, altitude);
+	}
+
+	/**
+	 * Shows a column of dark smoke rising {@code height} blocks from {@code foot} (a burning reactor, a fire...), drawn by
+	 * clients up to a kilometre away; {@code width} at the foot, wider further up. It lasts {@code ticks} ticks unless
+	 * renewed with the same {@code key}. Purely visual.
+	 */
+	public static void smokeColumn(ServerLevel level, String key, Vec3 foot, double width, double height, int ticks) {
+		dev.radiation.world.Clouds.smoke(level, key, foot, width, height, 1, ticks);
+	}
+
+	/** The wind that carries clouds, in blocks per tick (horizontal). */
+	public static Vec3 wind(ServerLevel level) {
+		return dev.radiation.world.Wind.velocity(level);
+	}
+
 	/** Whether a source of that name exists. */
 	public static boolean hasSource(String name) {
 		return RadiationTracker.sources().source(name) != null;

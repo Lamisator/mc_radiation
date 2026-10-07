@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.4.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.5.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -164,6 +164,26 @@ herbs take several times more. A rate of 1 rad/s (36 Gy an hour) kills most plan
 Only the land near radiation is looked at, a few surface blocks per chunk every second, so it costs little
 and changes come over a few minutes rather than at once. All thresholds are in the config (`ecology`).
 
+## Radioactive clouds, wind and rain
+
+Since 1.5.0 radioactivity can travel: a burning reactor core ([Fission](https://github.com/Lamisator/fission)), a
+nuclear detonation ([RedButton](https://github.com/Lamisator/mc_redbutton)) or an operator's
+`/radiation cloud <pos> <rad/s> [radius] [altitude]` releases a **radioactive cloud**. It rises to its height above the
+ground and drifts with the wind, spreading as it goes. The ground under it gets its radiation (people indoors are
+shielded by their roofs), and it leaves **fallout** behind: sources that fade like iodine-131 (half-life 8 days)
+except for about 15 % that stays like caesium-137. Fallout that lands in the same 48-block square adds up into one
+source. A dry cloud fades away when it has spread too thin, after a few kilometres.
+
+**Rain washes clouds out.** Where it rains (or snows) under a cloud, it drops its fallout four times as often and
+five times as heavily per block, so it is gone after a few hundred blocks - and leaves hot spots where it rained, as
+Chernobyl's fallout did. In a test, two equal clouds after 200 blocks: the dry one still 1.5 rad/s under it, its
+hottest fallout 5 rad/s; the one in rain 0.5 rad/s, its fallout up to 14 rad/s.
+
+**The wind** has no Minecraft equivalent, so it is made up, the same for everyone: each world has a prevailing
+direction (from its seed) that swings back and forth over the days, 3 to 6 m/s, more in rain and thunderstorms.
+`/wind` tells everyone where it blows. Clients draw clouds (and smoke columns, such as a burning reactor's) up to a
+kilometre away, within their render distance.
+
 ## Commands
 
 `/rads` works for every player and shows your own rads and condition.
@@ -182,6 +202,10 @@ The rest need operator permission (or cheats enabled in singleplayer):
 | `/radiation set <players> <amount>` / `add <players> <amount>` | Change rads (negative `add` removes) |
 | `/radiation clear [players]` | Reset rads to 0 |
 | `/radiation reload` | Reload the config and the sources file |
+| `/radiation cloud <pos> <rads/s> [radius] [altitude]` | Release a radioactive cloud (default 12 blocks wide, 40 up) |
+| `/radiation clouds` | The clouds on their way, and whether they are raining out |
+| `/radiation wind [set <towards°> <m/s> \| natural]` | Show the wind, fix it (0° = north, 90° = east) or let it change again |
+| `/wind` | Where the wind blows (for everyone) |
 
 Examples:
 
@@ -247,6 +271,9 @@ with the square of the distance and is absorbed by the blocks in between. Emitte
 when their block changes. `transmission(level, from, to)` gives the fraction that gets through between two points.
 [Fission](https://github.com/Lamisator/fission) uses these for reactor cores, spent fuel, storage and corium.
 
+Since 1.5.0 `releaseCloud(level, pos, strength, radius, altitude)` releases a radioactive cloud (see above),
+`smokeColumn(level, key, foot, width, height, ticks)` shows a column of smoke, and `wind(level)` gives the wind.
+
 Since 1.4.0 point sources can decay: `addSource(..., halfLifeTicks, longLivedFraction)` makes a source that halves
 every `halfLifeTicks` game ticks except for a part that stays (fallout: iodine fades, caesium stays), and that is removed
 by itself once it is down to nothing. `updateSource(level, name, pos, rads, radius)` moves a source, e.g. a drifting
@@ -260,7 +287,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.4.0.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.5.0.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 

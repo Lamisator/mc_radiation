@@ -26,6 +26,10 @@ public class RadiationClient implements ClientModInitializer {
 		ClientPlayNetworking.registerGlobalReceiver(RadiationStatusPayload.TYPE, (payload, context) -> ClientRadiationState.onStatus(payload));
 		ClientPlayNetworking.registerGlobalReceiver(RadiationSettingsPayload.TYPE, (payload, context) -> ClientRadiationState.onSettings(payload));
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientRadiationState.reset());
+		ClientPlayNetworking.registerGlobalReceiver(dev.radiation.network.CloudPayload.TYPE,
+				(payload, context) -> context.client().execute(() -> CloudRenderer.receive(payload)));
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(CloudRenderer::clear));
+		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.COLLECT_SUBMITS.register(CloudRenderer::render);
 
 		ClientTickEvents.END_CLIENT_TICK.register(GeigerCounterSound::tick);
 		HudElementRegistry.addLast(RadiationMod.id("rad_meter"), new RadMeterHud());

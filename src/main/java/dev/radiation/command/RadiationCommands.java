@@ -49,6 +49,20 @@ public final class RadiationCommands {
 		return builder.buildFuture();
 	};
 
+	private static int wind(CommandContext<CommandSourceStack> ctx) {
+		String text = dev.radiation.world.Wind.describe(ctx.getSource().getLevel());
+		ctx.getSource().sendSuccess(() -> Component.literal(Character.toUpperCase(text.charAt(0)) + text.substring(1)), false);
+		return 1;
+	}
+
+	private static int releaseCloud(CommandContext<CommandSourceStack> ctx, float radius, float altitude) throws CommandSyntaxException {
+		Vec3 pos = Vec3Argument.getVec3(ctx, "pos");
+		float rads = FloatArgumentType.getFloat(ctx, "rads");
+		dev.radiation.world.Clouds.release(ctx.getSource().getLevel(), pos, rads, radius, altitude);
+		ctx.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT, "Radioactive cloud released: %.2f rad/s, %.0f blocks, %.0f up", rads, radius, altitude)), true);
+		return 1;
+	}
+
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(literal("rads").executes(RadiationCommands::self));
 
@@ -107,7 +121,34 @@ public final class RadiationCommands {
 						.executes(ctx -> clear(ctx, List.of(ctx.getSource().getPlayerOrException())))
 						.then(argument("targets", EntityArgument.players())
 								.executes(ctx -> clear(ctx, EntityArgument.getPlayers(ctx, "targets")))))
+				.then(literal("wind")
+						.executes(RadiationCommands::wind)
+						.then(literal("set").then(argument("towards", FloatArgumentType.floatArg(0, 360))
+								.then(argument("speed", FloatArgumentType.floatArg(0, 40)).executes(ctx -> {
+									dev.radiation.world.Wind.fix(FloatArgumentType.getFloat(ctx, "towards"), FloatArgumentType.getFloat(ctx, "speed"));
+									dev.radiation.world.Clouds.save();
+									return wind(ctx);
+								}))))
+						.then(literal("natural").executes(ctx -> {
+							dev.radiation.world.Wind.release();
+							dev.radiation.world.Clouds.save();
+							return wind(ctx);
+						})))
+				.then(literal("clouds").executes(ctx -> {
+					List<String> lines = dev.radiation.world.Clouds.describe();
+					if (lines.isEmpty()) ctx.getSource().sendSuccess(() -> Component.literal("No radioactive clouds."), false);
+					for (String line : lines) ctx.getSource().sendSuccess(() -> Component.literal(line), false);
+					return lines.size();
+				}))
+				.then(literal("cloud").then(argument("pos", Vec3Argument.vec3()).then(argument("rads", FloatArgumentType.floatArg(0.001F, 1000))
+						.executes(ctx -> releaseCloud(ctx, 12, 40))
+						.then(argument("radius", FloatArgumentType.floatArg(2, 200))
+								.executes(ctx -> releaseCloud(ctx, FloatArgumentType.getFloat(ctx, "radius"), 40))
+								.then(argument("altitude", FloatArgumentType.floatArg(5, 300))
+										.executes(ctx -> releaseCloud(ctx, FloatArgumentType.getFloat(ctx, "radius"), FloatArgumentType.getFloat(ctx, "altitude"))))))))
 				.then(literal("reload").executes(RadiationCommands::reload)));
+		// where a cloud would go, for everyone
+		dispatcher.register(literal("wind").executes(RadiationCommands::wind));
 	}
 
 	private static int self(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
