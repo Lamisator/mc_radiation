@@ -162,9 +162,11 @@ public final class FoodContamination {
 		return (float) (Math.round(rads / decade) * decade);
 	}
 
+	/** 30, 5.8, 0.25: no needless decimals. */
 	public static String format(float rads) {
-		return rads >= 100 ? String.format(Locale.ROOT, "%.0f", rads) : rads >= 1 ? String.format(Locale.ROOT, "%.1f", rads)
+		String s = rads >= 10 ? String.format(Locale.ROOT, "%.0f", rads) : rads >= 1 ? String.format(Locale.ROOT, "%.1f", rads)
 				: String.format(Locale.ROOT, "%.2f", rads);
+		return s.contains(".") ? s.replaceAll("0+$", "").replaceAll("\\.$", "") : s;
 	}
 
 	/** Plants whose harvest takes up what is in the ground. */

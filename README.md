@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.7.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.7.1.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -166,9 +166,9 @@ and changes come over a few minutes rather than at once. All thresholds are in t
 
 ## Contaminated food
 
-Since 1.7.0 **every food has a contamination**: the rads you take up when you eat it. The tooltip shows it on every
-food (and on what food is made of: wheat, sugar, eggs, milk, pumpkins... the item tag `radiation:contaminable`) -
-*Contamination: none* for clean food. Armour and Rad-X do not help: what you eat is inside you.
+Since 1.7.0 **every food has a contamination**: the rads you take up when you eat it. The tooltip shows it in red right
+under the name - **+30 rad** - on every contaminated food, and on what food is made of (wheat, sugar, eggs, milk,
+pumpkins... the item tag `radiation:contaminable`); clean food shows nothing. Armour and Rad-X do not help: what you eat is inside you.
 
 Food gets contaminated
 - **in the field**: a crop takes up the radiation of the ground it grows on. What a harvest carries depends on the dose
@@ -334,7 +334,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.7.0.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.7.1.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).

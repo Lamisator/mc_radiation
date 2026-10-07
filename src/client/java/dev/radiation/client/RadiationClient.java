@@ -32,16 +32,12 @@ public class RadiationClient implements ClientModInitializer {
 		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.COLLECT_SUBMITS.register(CloudRenderer::render);
 
 		ClientTickEvents.END_CLIENT_TICK.register(GeigerCounterSound::tick);
-		// every food shows its contamination, right under its name
+		// contaminated food shows the rads it gives, in red right under its name (clean food shows nothing)
 		net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
-			if (!dev.radiation.food.FoodContamination.contaminable(stack) || lines.isEmpty()) return;
 			float rads = dev.radiation.food.FoodContamination.of(stack);
-			net.minecraft.network.chat.Component line = rads <= 0
-					? net.minecraft.network.chat.Component.translatable("tooltip.radiation.clean").withStyle(net.minecraft.ChatFormatting.DARK_GREEN)
-					: net.minecraft.network.chat.Component.translatable("tooltip.radiation.contamination", dev.radiation.food.FoodContamination.format(rads))
-							.withStyle(rads < 1 ? net.minecraft.ChatFormatting.GREEN : rads < 10 ? net.minecraft.ChatFormatting.YELLOW
-									: rads < 100 ? net.minecraft.ChatFormatting.GOLD : net.minecraft.ChatFormatting.RED);
-			lines.add(1, line);
+			if (rads <= 0 || lines.isEmpty()) return;
+			lines.add(1, net.minecraft.network.chat.Component.translatable("tooltip.radiation.contamination", dev.radiation.food.FoodContamination.format(rads))
+					.withStyle(net.minecraft.ChatFormatting.RED));
 		});
 		HudElementRegistry.addLast(RadiationMod.id("rad_meter"), new RadMeterHud());
 

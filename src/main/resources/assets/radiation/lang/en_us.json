@@ -89,6 +89,5 @@
   "block.radiation.heavy_concrete": "Heavy Concrete",
   "block.radiation.heavy_concrete.desc": "Iron-ore aggregate: blast-proof and absorbs 75 % of radiation per block",
   "message.radiation.ate_contaminated": "Contaminated food: +%s rad",
-  "tooltip.radiation.contamination": "☢ Contamination: %s rad",
-  "tooltip.radiation.clean": "☢ Contamination: none"
+  "tooltip.radiation.contamination": "+%s rad"
 }
