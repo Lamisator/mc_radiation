@@ -303,6 +303,27 @@ public final class RadiationTracker {
 	 * @param breakdown if not null, receives a human-readable line per contributing zone/source
 	 */
 	public static float exposureAt(ServerLevel level, Vec3 pos, @Nullable List<Component> breakdown) {
+		return exposureAt(level, pos, breakdown, false);
+	}
+
+	/**
+	 * The part of the radiation at a position that comes from radioactivity lying there - fallout, the ground zero of a
+	 * detonation, radiation zones - and so gets into what grows or is stored there. Not counted: gamma rays from things
+	 * that do not spread (radiating blocks such as corium or spent fuel, waste barrels, an open reactor core) and clouds
+	 * passing overhead (what they drop is fallout and counts). See {@code food.notContaminating}.
+	 */
+	public static float contaminationAt(ServerLevel level, Vec3 pos) {
+		return exposureAt(level, pos, null, true);
+	}
+
+	private static boolean contaminates(RadiationSources.PointSource source, RadiationConfig config) {
+		for (String prefix : config.food.notContaminating) {
+			if (source.name.startsWith(prefix)) return false;
+		}
+		return true;
+	}
+
+	private static float exposureAt(ServerLevel level, Vec3 pos, @Nullable List<Component> breakdown, boolean depositedOnly) {
 		if (sources == null) {
 			return 0;
 		}
@@ -321,7 +342,7 @@ public final class RadiationTracker {
 		}
 
 		for (RadiationSources.PointSource source : sources.sources) {
-			if (!source.dimension.equals(dimension)) {
+			if (!source.dimension.equals(dimension) || depositedOnly && !contaminates(source, config)) {
 				continue;
 			}
 			Vec3 center = new Vec3(source.x, source.y, source.z);
@@ -332,6 +353,10 @@ public final class RadiationTracker {
 					breakdown.add(Component.literal(String.format(Locale.ROOT, "  source %s: %.2f rad/s", source.name, value)));
 				}
 			}
+		}
+
+		if (depositedOnly) {
+			return total;
 		}
 
 		for (RadiationSources.Emitter e : sources.emitters) {

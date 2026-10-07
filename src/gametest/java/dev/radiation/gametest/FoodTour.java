@@ -110,7 +110,7 @@ public class FoodTour implements FabricClientGameTest {
 	private int build(ServerLevel level) {
 		int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, 0, 0) - 1;
 		// two wheat fields, ripe: one 5 blocks from a fallout source, one far away
-		for (int fx : new int[]{0, 200}) {
+		for (int fx : new int[]{0, 200, 600}) {
 			for (int dx = 0; dx < 3; dx++) {
 				BlockPos p = new BlockPos(fx + dx, y, 0);
 				level.setBlock(p, Blocks.FARMLAND.defaultBlockState(), Block.UPDATE_CLIENTS);
@@ -118,12 +118,15 @@ public class FoodTour implements FabricClientGameTest {
 			}
 		}
 		RadiationApi.addSource(level, "fallout_test", new Vec3(1.5, y + 1, 5.5), 0.6f, 40, RadiationApi.Falloff.LINEAR, true);
+		// the third field next to a radiating block (gamma only, nothing in the soil): its wheat must stay clean
+		level.setBlock(new BlockPos(601, y + 1, 4), Blocks.IRON_ORE.defaultBlockState(), Block.UPDATE_CLIENTS);
+		RadiationApi.setEmitter(level, new BlockPos(601, y + 1, 4), 8, 32);
 		return y;
 	}
 
 	private String harvest(ServerLevel level) {
 		StringBuilder out = new StringBuilder("harvest:");
-		for (int fx : new int[]{0, 200}) {
+		for (int fx : new int[]{0, 200, 600}) {
 			out.append(String.format(Locale.ROOT, "  field at %d (%.3f rad/s):", fx, RadiationApi.exposureAt(level, new Vec3(fx + 1.5, this.g + 1.5, 0.5))));
 			for (int dx = 0; dx < 3; dx++) level.destroyBlock(new BlockPos(fx + dx, this.g + 1, 0), true);
 			List<ItemEntity> items = level.getEntitiesOfClass(ItemEntity.class, new AABB(fx - 3, this.g - 2, -3, fx + 6, this.g + 4, 3));
@@ -171,6 +174,12 @@ public class FoodTour implements FabricClientGameTest {
 		onGround.setUnlimitedLifetime();
 		level.addFreshEntity(onGround);
 		player.teleportTo(301.5, this.g + 1, 2.5);
+		// a second chest next to a radiating block only
+		BlockPos chest2 = new BlockPos(340, this.g + 1, 0);
+		level.setBlock(chest2, Blocks.CHEST.defaultBlockState(), Block.UPDATE_ALL);
+		((ChestBlockEntity) level.getBlockEntity(chest2)).setItem(0, new ItemStack(Items.BREAD, 16));
+		level.setBlock(new BlockPos(342, this.g + 1, 0), Blocks.IRON_ORE.defaultBlockState(), Block.UPDATE_CLIENTS);
+		RadiationApi.setEmitter(level, new BlockPos(342, this.g + 1, 0), 8, 32);
 		player.getInventory().setItem(8, new ItemStack(Items.BREAD, 5));
 		this.storeSource = RadiationApi.addSource(level, "store_test", new Vec3(301.5, this.g + 1.5, 0.5), 2f, 20, RadiationApi.Falloff.LINEAR, true);
 	}
@@ -180,6 +189,9 @@ public class FoodTour implements FabricClientGameTest {
 		StringBuilder out = new StringBuilder(String.format(Locale.ROOT, "a minute at %.2f rad/s:", RadiationApi.exposureAt(level, new Vec3(300.5, this.g + 1.5, 0.5))));
 		out.append(String.format(Locale.ROOT, " chest bread %.2f, wheat %.2f, cobblestone has none: %s;", FoodContamination.of(chest.getItem(0)),
 				FoodContamination.of(chest.getItem(1)), chest.getItem(2).get(FoodContamination.CONTAMINATION) == null));
+		ChestBlockEntity chest2 = (ChestBlockEntity) level.getBlockEntity(new BlockPos(340, this.g + 1, 0));
+		out.append(String.format(Locale.ROOT, " chest next to a radiating block only (%.2f rad/s): bread %.2f;",
+				RadiationApi.exposureAt(level, new Vec3(340.5, this.g + 1.5, 0.5)), FoodContamination.of(chest2.getItem(0))));
 		for (ItemEntity e : level.getEntitiesOfClass(ItemEntity.class, new AABB(299, this.g - 2, -3, 306, this.g + 4, 4))) {
 			out.append(String.format(Locale.ROOT, " apple on the ground %.2f;", FoodContamination.of(e.getItem())));
 		}

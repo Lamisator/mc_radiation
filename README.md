@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.7.1.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.7.2.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -171,8 +171,9 @@ under the name - **+30 rad** - on every contaminated food, and on what food is m
 pumpkins... the item tag `radiation:contaminable`); clean food shows nothing. Armour and Rad-X do not help: what you eat is inside you.
 
 Food gets contaminated
-- **in the field**: a crop takes up the radiation of the ground it grows on. What a harvest carries depends on the dose
-  rate at the plant when it is harvested: 20 rad per item for every rad/s. Wheat from a field at 0.5 rad/s: 10 rad a
+- **in the field**: a crop takes up the fission products in the ground it grows on, as grain, milk and mushrooms did
+  around Chernobyl. What a harvest carries depends on the dose rate from that contamination at the plant when it is
+  harvested: 20 rad per item for every rad/s. Wheat from a field at 0.5 rad/s: 10 rad a
   sheaf. Seeds stay clean. The same goes for berries, apples from leaves, melons, pumpkins, cocoa, mushrooms, sugar cane.
 - **in the animal**: meat, eggs and the like from an irradiated animal carry a tenth of its rads: a cow with 400 rads
   gives steaks at 50 rad.
@@ -183,6 +184,12 @@ Food gets contaminated
   ingredients out over the result - three sheaves of wheat at 10 rad bake a loaf at 30 rad - and cooking keeps it: a raw
   steak at 50 rad is a cooked steak at 50 rad.
 
+Only **contamination** counts - radioactivity lying there: fallout, a nuclear detonation's ground zero, radiation zones
+and sources placed with commands. **Gamma rays alone do not make food radioactive**: wheat growing next to a lump of
+corium, or a chest beside spent fuel, gets a dose rate but stays clean (the plants still suffer, see above). A cloud
+passing overhead does not count either; what it rains down is fallout, and that does. (`food.notContaminating` lists the
+sources that do not count.)
+
 Harvests and products are rounded to a few steps (0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10, 20...) so that they stack.
 
 | Contaminated bread | ...and a steak from an irradiated cow |
@@ -192,7 +199,8 @@ Harvests and products are rounded to a few steps (0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5
 In a test: wheat from a field at 0.53 rad/s was 10 rad a sheaf and the bread baked from it 30 rad; two raw steaks at 50
 rad came out of a furnace as two cooked steaks at 50 rad; a minute next to a 1.9 rad/s source made the bread in a chest,
 the wheat beside it and an apple on the ground 5.8 rad each (with 10 times the normal uptake), while the bread in the
-player's inventory stayed clean; eating a 30 rad loaf took the player from 0 to 30 rads.
+player's inventory stayed clean, and so did wheat grown at 0.49 rad/s next to a radiating block and bread in a chest at
+2 rad/s beside one; eating a 30 rad loaf took the player from 0 to 30 rads.
 
 ## Radioactive clouds, wind and rain
 
@@ -290,6 +298,7 @@ In Prism, that's **Edit → Minecraft folder → config**.
 | `food.animalShare` | 0.1 | Share of an animal's rads in each piece of meat (egg...) it gives |
 | `food.storageUptake` | 0.005 | Rad per item for each rad of exposure in a container or on the ground |
 | `food.storageIntervalTicks` | 100 | How often stored food is looked at |
+| `food.notContaminating` | radioactive_cloud, fission_cloud, fission_release | Point sources (by name prefix) whose radiation does not get into food; radiating blocks and waste barrels never do |
 | `clouds.maxAgeMinutes` | 120 | The longest a radioactive cloud drifts |
 | `clouds.spreadPerBlock` | 0.012 | How much wider it gets per block (wider = thinner); 1.5 had 0.025 |
 | `clouds.fadedRads` | 0.001 | A cloud is gone when the dose rate under it falls below this |
@@ -334,7 +343,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.7.1.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.7.2.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).

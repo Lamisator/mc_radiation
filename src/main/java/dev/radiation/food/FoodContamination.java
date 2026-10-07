@@ -44,9 +44,11 @@ import java.util.Locale;
  * Contaminated food. Every food (and what food is made of: wheat, sugar, eggs, milk... the tag
  * {@code radiation:contaminable}) carries a contamination: the rads you take up when you eat one. It comes from
  * <ul>
- * <li>the field: a crop harvested where the ground is irradiated takes up {@code food.cropUptake} rad per rad/s there;
+ * <li>the field: a crop harvested where the ground is contaminated takes up {@code food.cropUptake} rad per rad/s of
+ * contamination there ({@link RadiationTracker#contaminationAt}: fallout and the like, not gamma rays from corium or
+ * spent fuel nearby, which pass through);
  * <li>the animal: meat, eggs and the like from an irradiated animal carry {@code food.animalShare} of its rads;
- * <li>storage: food lying in a chest, barrel, furnace... or on the ground where it is irradiated takes up
+ * <li>storage: food lying in a chest, barrel, furnace... or on the ground where there is contamination takes up
  * {@code food.storageUptake} rad per rad of exposure. Food carried in an inventory takes up nothing more;
  * <li>processing: what is made of contaminated food is contaminated too - the contamination of all ingredients is
  * shared out over the result (three wheat at 10 rad make a loaf of bread at 30 rad; a raw steak at 20 rad makes a
@@ -98,7 +100,7 @@ public final class FoodContamination {
 			float each = 0;
 			if (state != null && origin != null && plant(state)) {
 				// a harvest: what the plant took up from the irradiated ground
-				each = RadiationEcology.rateAt(level, BlockPos.containing(origin)) * cfg.cropUptake;
+				each = RadiationTracker.contaminationAt(level, Vec3.atCenterOf(BlockPos.containing(origin))) * cfg.cropUptake;
 			} else if (state == null && entity instanceof LivingEntity animal && !(entity instanceof net.minecraft.world.entity.player.Player)) {
 				Float rads = animal.getAttached(ModRegistry.RADS);
 				each = rads == null ? 0 : rads * cfg.animalShare;
@@ -186,7 +188,7 @@ public final class FoodContamination {
 		RadiationConfig.Food cfg = RadiationConfig.get().food;
 		for (BlockEntity be : List.copyOf(chunk.getBlockEntities().values())) {
 			if (!(be instanceof Container container) || be.isRemoved()) continue;
-			float rate = RadiationEcology.rateAt(level, be.getBlockPos());
+			float rate = RadiationTracker.contaminationAt(level, Vec3.atCenterOf(be.getBlockPos()));
 			if (rate < 0.0005f) continue;
 			float pending = be.getAttachedOrElse(PENDING, 0f) + rate * seconds * cfg.storageUptake;
 			float most = 0;

@@ -235,7 +235,7 @@ public final class RadiationEcology {
 		}
 		for (Entity e : level.getAllEntities()) {
 			if (e instanceof net.minecraft.world.entity.item.ItemEntity item && item.isAlive() && hot.contains(ChunkPos.pack(item.blockPosition()))) {
-				dev.radiation.food.FoodContamination.onGround(item, rateAt(level, item.blockPosition()), seconds);
+				dev.radiation.food.FoodContamination.onGround(item, RadiationTracker.contaminationAt(level, item.position()), seconds);
 			}
 		}
 	}

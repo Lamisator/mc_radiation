@@ -205,12 +205,20 @@ public class RadiationConfig {
 		public float storageUptake = 0.005f;
 		/** How often stored food is looked at, in ticks. */
 		public int storageIntervalTicks = 100;
+		/**
+		 * Point sources (by name prefix) whose radiation does not get into food: clouds overhead and Fission's open core.
+		 * Everything else counts - fallout, a detonation's ground zero, zones and sources placed with commands - but never
+		 * radiating blocks (corium, debris, fuel, spent fuel) or waste barrels: their gamma rays pass through, nothing
+		 * of them reaches the soil or the food.
+		 */
+		public List<String> notContaminating = new ArrayList<>(List.of("radioactive_cloud", "fission_cloud", "fission_release"));
 
 		void sanitize() {
 			cropUptake = Math.max(0, cropUptake);
 			animalShare = Math.max(0, animalShare);
 			storageUptake = Math.max(0, storageUptake);
 			storageIntervalTicks = Math.clamp(storageIntervalTicks, 20, 24000);
+			if (notContaminating == null) notContaminating = new ArrayList<>();
 		}
 	}
 
