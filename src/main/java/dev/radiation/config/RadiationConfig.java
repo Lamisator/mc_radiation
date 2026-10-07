@@ -32,7 +32,7 @@ public class RadiationConfig {
 
 	/** Format of this file; older files (without it: 0) are upgraded on load (see {@link #migrate}). */
 	public int configVersion = 0;
-	static final int CURRENT_VERSION = 2;
+	static final int CURRENT_VERSION = 3;
 
 	// --- core ---
 	/** Accumulated rads at which the player dies. */
@@ -206,17 +206,27 @@ public class RadiationConfig {
 		/** How often stored food is looked at, in ticks. */
 		public int storageIntervalTicks = 100;
 		/**
-		 * Point sources (by name prefix) whose radiation does not get into food: clouds overhead and Fission's open core.
-		 * Everything else counts - fallout, a detonation's ground zero, zones and sources placed with commands - but never
-		 * radiating blocks (corium, debris, fuel, spent fuel) or waste barrels: their gamma rays pass through, nothing
-		 * of them reaches the soil or the food.
+		 * Point sources (by name prefix) whose radiation does not get into food, e.g. "radioactive_cloud", "fission_cloud",
+		 * "fission_release" (clouds overhead and Fission's open core). Empty since 1.8.0: everything counts.
 		 */
-		public List<String> notContaminating = new ArrayList<>(List.of("radioactive_cloud", "fission_cloud", "fission_release"));
+		public List<String> notContaminating = new ArrayList<>();
+		/**
+		 * Whether the gamma rays of radiating blocks (corium, debris, fuel, spent fuel) and waste barrels get into food
+		 * too. True since 1.8.0; false is the 1.7.2 rule (only radioactivity lying there counts).
+		 */
+		public boolean gammaContaminates = true;
+		/**
+		 * The most a food can carry, per point of its nutrition (half a drumstick): bread (5) at most 20 rad. What has no
+		 * nutrition of its own (wheat, sugar, eggs, milk...) counts with its share in what it is made into, see
+		 * FoodContamination#nutrition. 0: no cap.
+		 */
+		public float radsPerNutrition = 4f;
 
 		void sanitize() {
 			cropUptake = Math.max(0, cropUptake);
 			animalShare = Math.max(0, animalShare);
 			storageUptake = Math.max(0, storageUptake);
+			radsPerNutrition = Math.max(0, radsPerNutrition);
 			storageIntervalTicks = Math.clamp(storageIntervalTicks, 20, 24000);
 			if (notContaminating == null) notContaminating = new ArrayList<>();
 		}
@@ -332,6 +342,15 @@ public class RadiationConfig {
 			if (concreteShielding == 0.55f) concreteShielding = 0.90f;
 			if (heavyShielding == 0.75f) heavyShielding = 0.97f;
 			RadiationMod.LOGGER.info("Upgraded config/radiation.json to version 2 (concrete {}, heavy {})", concreteShielding, heavyShielding);
+		}
+		if (configVersion < 3) {
+			// 1.8.0: no more exclusions - clouds, Fission's open core and gamma rays from blocks and barrels count for food
+			if (food.notContaminating != null && new java.util.HashSet<>(food.notContaminating)
+					.equals(java.util.Set.of("radioactive_cloud", "fission_cloud", "fission_release"))) {
+				food.notContaminating = new ArrayList<>();
+			}
+			RadiationMod.LOGGER.info("Upgraded config/radiation.json to version 3 (food.notContaminating {}, gammaContaminates {})",
+					food.notContaminating, food.gammaContaminates);
 		}
 		configVersion = CURRENT_VERSION;
 	}

@@ -307,10 +307,10 @@ public final class RadiationTracker {
 	}
 
 	/**
-	 * The part of the radiation at a position that comes from radioactivity lying there - fallout, the ground zero of a
-	 * detonation, radiation zones - and so gets into what grows or is stored there. Not counted: gamma rays from things
-	 * that do not spread (radiating blocks such as corium or spent fuel, waste barrels, an open reactor core) and clouds
-	 * passing overhead (what they drop is fallout and counts). See {@code food.notContaminating}.
+	 * The part of the radiation at a position that gets into what grows or is stored there. By default (since 1.8.0)
+	 * that is all of it: fallout, ground zero, zones and every point source, and with {@code food.gammaContaminates}
+	 * also radiating blocks (corium, spent fuel...) and waste barrels. {@code food.notContaminating} leaves point sources
+	 * out by name prefix, and {@code food.gammaContaminates = false} leaves out blocks and barrels (the 1.7.2 rules).
 	 */
 	public static float contaminationAt(ServerLevel level, Vec3 pos) {
 		return exposureAt(level, pos, null, true);
@@ -323,7 +323,7 @@ public final class RadiationTracker {
 		return true;
 	}
 
-	private static float exposureAt(ServerLevel level, Vec3 pos, @Nullable List<Component> breakdown, boolean depositedOnly) {
+	private static float exposureAt(ServerLevel level, Vec3 pos, @Nullable List<Component> breakdown, boolean forFood) {
 		if (sources == null) {
 			return 0;
 		}
@@ -342,7 +342,7 @@ public final class RadiationTracker {
 		}
 
 		for (RadiationSources.PointSource source : sources.sources) {
-			if (!source.dimension.equals(dimension) || depositedOnly && !contaminates(source, config)) {
+			if (!source.dimension.equals(dimension) || forFood && !contaminates(source, config)) {
 				continue;
 			}
 			Vec3 center = new Vec3(source.x, source.y, source.z);
@@ -355,7 +355,7 @@ public final class RadiationTracker {
 			}
 		}
 
-		if (depositedOnly) {
+		if (forFood && !config.food.gammaContaminates) {
 			return total;
 		}
 

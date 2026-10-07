@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Contaminated food (Radiation 1.7): wheat from an irradiated field and from a clean one, bread baked from it, beef
+ * Contaminated food (Radiation 1.7, caps and gamma since 1.8): wheat from an irradiated field and from a clean one, bread baked from it, beef
  * from an irradiated cow and cooked in a furnace, bread stored in a chest, lying on the ground and carried by the player
  * next to a source, and the player eating a contaminated loaf. Run with {@code ./gradlew runClientGameTest -Pscene=food}.
  */
@@ -118,7 +118,7 @@ public class FoodTour implements FabricClientGameTest {
 			}
 		}
 		RadiationApi.addSource(level, "fallout_test", new Vec3(1.5, y + 1, 5.5), 0.6f, 40, RadiationApi.Falloff.LINEAR, true);
-		// the third field next to a radiating block (gamma only, nothing in the soil): its wheat must stay clean
+		// the third field next to a radiating block (gamma only, nothing in the soil): since 1.8.0 its wheat counts too
 		level.setBlock(new BlockPos(601, y + 1, 4), Blocks.IRON_ORE.defaultBlockState(), Block.UPDATE_CLIENTS);
 		RadiationApi.setEmitter(level, new BlockPos(601, y + 1, 4), 8, 32);
 		return y;
@@ -208,11 +208,13 @@ public class FoodTour implements FabricClientGameTest {
 		FurnaceBlockEntity f = (FurnaceBlockEntity) level.getBlockEntity(pos);
 		ItemStack beef = new ItemStack(Items.BEEF, 2);
 		FoodContamination.set(beef, 50);
+		float rawHeld = FoodContamination.of(beef);
 		f.setItem(0, beef);
 		f.setItem(1, new ItemStack(Items.COAL, 1));
 		for (int i = 0; i < 520; i++) FurnaceBlockEntity.serverTick(level, pos, level.getBlockState(pos), f);
 		ItemStack out = f.getItem(2);
-		return String.format(Locale.ROOT, "furnace: 2 raw beef at 50 rad -> %dx %s at %.2f rad", out.getCount(), out.getItem(), FoodContamination.of(out));
+		return String.format(Locale.ROOT, "furnace: 2 raw beef set to 50 rad (held %.0f, cap %.0f) -> %dx %s at %.2f rad (cap %.0f)", rawHeld,
+				FoodContamination.cap(new ItemStack(Items.BEEF)), out.getCount(), out.getItem(), FoodContamination.of(out), FoodContamination.cap(out));
 	}
 
 	private String eat(ServerLevel level, ServerPlayer player) {
@@ -221,11 +223,12 @@ public class FoodTour implements FabricClientGameTest {
 		ItemStack bread = new ItemStack(Items.BREAD, 1);
 		FoodContamination.set(bread, 30);
 		float before = RadiationTracker.getRads(player);
+		float breadCap = FoodContamination.cap(bread);
 		bread.finishUsingItem(level, player);
 		float afterBread = RadiationTracker.getRads(player);
 		ItemStack clean = new ItemStack(Items.APPLE, 1);
 		clean.finishUsingItem(level, player);
-		return String.format(Locale.ROOT, "eating: rads %.1f -> %.1f after a 30 rad loaf -> %.1f after a clean apple; food level %d",
-				before, afterBread, RadiationTracker.getRads(player), player.getFoodData().getFoodLevel());
+		return String.format(Locale.ROOT, "eating: rads %.1f -> %.1f after a loaf set to 30 rad (cap %.0f) -> %.1f after a clean apple; food level %d",
+				before, afterBread, breadCap, RadiationTracker.getRads(player), player.getFoodData().getFoodLevel());
 	}
 }

@@ -27,6 +27,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.Consumable;
 import net.minecraft.world.item.component.ConsumableListener;
 import net.minecraft.world.level.Level;
@@ -45,8 +46,7 @@ import java.util.Locale;
  * {@code radiation:contaminable}) carries a contamination: the rads you take up when you eat one. It comes from
  * <ul>
  * <li>the field: a crop harvested where the ground is contaminated takes up {@code food.cropUptake} rad per rad/s of
- * contamination there ({@link RadiationTracker#contaminationAt}: fallout and the like, not gamma rays from corium or
- * spent fuel nearby, which pass through);
+ * contamination there ({@link RadiationTracker#contaminationAt}: since 1.8.0 all radiation there, see the config);
  * <li>the animal: meat, eggs and the like from an irradiated animal carry {@code food.animalShare} of its rads;
  * <li>storage: food lying in a chest, barrel, furnace... or on the ground where there is contamination takes up
  * {@code food.storageUptake} rad per rad of exposure. Food carried in an inventory takes up nothing more;
@@ -54,7 +54,8 @@ import java.util.Locale;
  * shared out over the result (three wheat at 10 rad make a loaf of bread at 30 rad; a raw steak at 20 rad makes a
  * cooked one at 20).
  * </ul>
- * Harvests and products are rounded to a few steps (0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10...) so that they stack.
+ * Harvests and products are rounded to a few steps (0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10...) so that they stack. No item
+ * carries more than {@code food.radsPerNutrition} rad per point of nutrition ({@link #cap}): bread at most 20 rad.
  */
 public final class FoodContamination {
 	public static final TagKey<Item> CONTAMINABLE = TagKey.create(Registries.ITEM, RadiationMod.id("contaminable"));
@@ -67,6 +68,7 @@ public final class FoodContamination {
 		@Override
 		public void onConsume(Level level, LivingEntity user, ItemStack stack, Consumable consumable) {
 			if (level.isClientSide() || rads <= 0 || !RadiationConfig.get().food.enabled) return;
+			float rads = Math.min(this.rads, cap(stack));
 			if (user instanceof ServerPlayer player) {
 				RadiationTracker.addRads(player, rads);
 				player.sendOverlayMessage(Component.translatable("message.radiation.ate_contaminated", format(rads)).withStyle(ChatFormatting.GOLD));
@@ -123,12 +125,45 @@ public final class FoodContamination {
 
 	public static float of(ItemStack stack) {
 		Contamination c = stack.get(CONTAMINATION);
-		return c == null ? 0 : c.rads();
+		return c == null ? 0 : Math.min(c.rads(), cap(stack));
 	}
 
 	public static void set(ItemStack stack, float rads) {
+		rads = Math.min(rads, cap(stack));
 		if (rads <= 0) stack.remove(CONTAMINATION);
 		else stack.set(CONTAMINATION, new Contamination(rads));
+	}
+
+	/**
+	 * The most one item can carry: {@code food.radsPerNutrition} per point of nutrition. Bread (5) at most 20 rad, a steak
+	 * (8) 32, an apple (4) 16, a melon slice (2) 8.
+	 */
+	public static float cap(ItemStack stack) {
+		float per = RadiationConfig.get().food.radsPerNutrition;
+		if (per <= 0) return Float.MAX_VALUE;
+		return fine(per * nutrition(stack));
+	}
+
+	/**
+	 * Nutrition of a food, or for what food is made of its share in what it becomes: wheat a third of a loaf, a pumpkin
+	 * half a pie, a melon nine slices, mushrooms half a stew, hay nine wheat...
+	 */
+	public static float nutrition(ItemStack stack) {
+		var food = stack.get(DataComponents.FOOD);
+		if (food != null) return food.nutrition();
+		Item i = stack.getItem();
+		if (i == Items.WHEAT) return 5f / 3;
+		if (i == Items.HAY_BLOCK) return 15;
+		if (i == Items.SUGAR_CANE || i == Items.SUGAR) return 1;
+		if (i == Items.PUMPKIN || i == Items.CARVED_PUMPKIN) return 4;
+		if (i == Items.MELON) return 18;
+		if (i == Items.COCOA_BEANS) return 4;
+		if (i == Items.EGG || i == Items.BROWN_EGG || i == Items.BLUE_EGG) return 2;
+		if (i == Items.MILK_BUCKET) return 4;
+		if (i == Items.BROWN_MUSHROOM || i == Items.RED_MUSHROOM) return 3;
+		if (i == Items.HONEYCOMB) return 2;
+		if (i == Items.CAKE) return 14;
+		return 4;
 	}
 
 	/** What processing gives: the contamination of everything that went in, shared out over what comes out. */
@@ -139,7 +174,8 @@ public final class FoodContamination {
 			if (!in.isEmpty()) total += of(in);
 		}
 		if (total <= 0) return;
-		set(result, coarse(total / Math.max(1, result.getCount())));
+		// two significant digits (not the coarse steps of a harvest): cooking keeps what went in, a capped value stays capped
+		set(result, fine(total / Math.max(1, result.getCount())));
 	}
 
 	/** Steps that stack: 0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10, 20... (nearest step on a log scale; below 0.07 nothing). */
