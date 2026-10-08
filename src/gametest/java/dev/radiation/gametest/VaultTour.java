@@ -154,6 +154,11 @@ public class VaultTour implements FabricClientGameTest {
 				sp.getServer().runCommand(c);
 			}
 			context.runOnClient(mc -> mc.options.renderDistance().set(10));
+			String shots = System.getProperty("radiation.mapShots", "");
+			if (!shots.isEmpty()) {
+				this.shotList(context, sp, java.nio.file.Path.of(shots));
+				return;
+			}
 			this.look(context, sp, -388.5, 70, zd + 6.5, new Vec3(-404.5, 72.5, zd + 0.5));
 			context.waitTicks(40);
 			this.shot(context, "map_portal");
@@ -334,6 +339,57 @@ public class VaultTour implements FabricClientGameTest {
 		context.waitTicks(5);
 		this.shot(context, "creative_tab");
 		context.runOnClient(mc -> mc.gui.setScreen(null));
+	}
+
+	/**
+	 * Photographs any saved map from a list of camera spots, one per line:
+	 * {@code <name> <dimension> <x> <y> <z> <look x> <look y> <look z>}, or {@code /<command>} to run a command
+	 * (e.g. to step through a portal) and {@code wait <ticks>}. Lines starting with # are skipped.
+	 */
+	private void shotList(ClientGameTestContext context, TestSingleplayerContext sp, java.nio.file.Path file) {
+		java.util.List<String> lines;
+		try {
+			lines = java.nio.file.Files.readAllLines(file);
+		} catch (java.io.IOException e) {
+			throw new RuntimeException(e);
+		}
+		for (String line : lines) {
+			line = line.strip();
+			if (line.isEmpty() || line.startsWith("#")) {
+				continue;
+			}
+			if (line.startsWith("/")) {
+				sp.getServer().runCommand(line.substring(1));
+				continue;
+			}
+			String[] p = line.split("\\s+");
+			if (p[0].equals("wait")) {
+				context.waitTicks(Integer.parseInt(p[1]));
+				continue;
+			}
+			double x = Double.parseDouble(p[2]), y = Double.parseDouble(p[3]), z = Double.parseDouble(p[4]);
+			double dx = Double.parseDouble(p[5]) - x, dy = Double.parseDouble(p[6]) - (y + 1.62), dz = Double.parseDouble(p[7]) - z;
+			float yaw = (float) (-Math.toDegrees(Math.atan2(dx, dz)));
+			float pitch = (float) (-Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz))));
+			String to = String.format(Locale.ROOT, "execute in %s run tp @a %.2f %.2f %.2f %.1f %.1f", p[1], x, y, z, yaw, pitch);
+			sp.getServer().runCommand(to);
+			context.waitTicks(10);
+			sp.getServer().runOnServer(server -> {
+				for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+					player.getAbilities().flying = true;
+					player.onUpdateAbilities();
+					player.setDeltaMovement(Vec3.ZERO);
+				}
+			});
+			sp.getServer().runCommand(to);
+			context.waitTicks(30);
+			try {
+				sp.getConnection().waitForChunksRender(false, 600);
+			} catch (AssertionError e) {
+				System.out.println("[map-shots] chunks still rendering");
+			}
+			this.shot(context, p[0]);
+		}
 	}
 
 	private void shot(ClientGameTestContext context, String name) {

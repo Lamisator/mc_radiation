@@ -42,6 +42,7 @@ loom {
 			if (name == "clientGameTest") {
 				vmArg "-Dradiation.map=" + (project.findProperty("map") ?: "")
 				vmArg "-Dradiation.scene=" + (project.findProperty("scene") ?: "")
+				vmArg "-Dradiation.mapShots=" + (project.findProperty("mapShots") ?: "")
 				if (project.hasProperty("kioskOnly")) {
 					vmArg "-Dradiation.kioskOnly=true"
 				}
