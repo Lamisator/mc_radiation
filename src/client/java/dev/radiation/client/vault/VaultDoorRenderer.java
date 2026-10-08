@@ -38,8 +38,15 @@ public class VaultDoorRenderer implements BlockEntityRenderer<VaultDoorBlockEnti
 	private static final int SAMPLES_PER_TOOTH = 8;
 	private static final float R_BODY = 2.2F;
 	private static final float R_TOOTH = 2.48F;
-	private static final float HALF_THICKNESS = 0.42F;
+	/** Flush with both faces of the wall it closes (a hair behind them, so the teeth don't flicker against the corner blocks). */
+	private static final float HALF_THICKNESS = 0.495F;
 	private static final float[][] PROFILE = profile();
+	/** The collar's steel comes from the frame blocks around the opening. */
+	private static final RenderType COLLAR_TYPE = RenderTypes.entityCutout(RadiationMod.id("textures/block/vault_door_frame.png"));
+	/** Gap between the door and the cog-shaped aperture in the collar. */
+	private static final float COLLAR_CLEARANCE = 1.012F;
+	/** Inner (aperture) and outer (opening outline) points of the collar, by angle. */
+	private static final float[][][] COLLAR = collar();
 	// the screw arm, mounted from the ceiling behind the door
 	private static final float HEAD_IDLE = -2.4F;
 	private static final float HEAD_PARKED = -2.25F;
@@ -88,6 +95,104 @@ public class VaultDoorRenderer implements BlockEntityRenderer<VaultDoorBlockEnti
 			p[i][1] = (float) (Math.sin(a) * r);
 		}
 		return p;
+	}
+
+	/**
+	 * The opening is a 5×5 square without its corners; the door is round. The collar fills the space between: from the
+	 * outline of the opening in to a cog-shaped aperture just larger than the door, so the door sits in the wall with
+	 * no gaps, and rolls out of a cog-shaped hole when it opens.
+	 */
+	private static float[][][] collar() {
+		float[][] outline = {{-1.5F, 2.5F}, {-1.5F, 1.5F}, {-2.5F, 1.5F}, {-2.5F, -1.5F}, {-1.5F, -1.5F}, {-1.5F, -2.5F}, {1.5F, -2.5F}, {1.5F, -1.5F},
+				{2.5F, -1.5F}, {2.5F, 1.5F}, {1.5F, 1.5F}, {1.5F, 2.5F}};
+		int n = PROFILE.length;
+		float[][] aperture = new float[n][2];
+		for (int i = 0; i < n; i++) {
+			aperture[i][0] = PROFILE[i][0] * COLLAR_CLEARANCE;
+			aperture[i][1] = PROFILE[i][1] * COLLAR_CLEARANCE;
+		}
+		// every corner of either outline gets its own ray, so both edges stay exact
+		java.util.TreeSet<Double> angles = new java.util.TreeSet<>();
+		for (float[] p : aperture) {
+			angles.add(norm(Math.atan2(p[1], p[0])));
+		}
+		for (float[] p : outline) {
+			angles.add(norm(Math.atan2(p[1], p[0])));
+		}
+		float[][] inner = new float[angles.size()][];
+		float[][] outer = new float[angles.size()][];
+		int k = 0;
+		for (double a : angles) {
+			double dx = Math.cos(a);
+			double dy = Math.sin(a);
+			double ti = ray(aperture, dx, dy);
+			double to = ray(outline, dx, dy);
+			inner[k] = new float[]{(float) (dx * ti), (float) (dy * ti)};
+			outer[k] = new float[]{(float) (dx * to), (float) (dy * to)};
+			k++;
+		}
+		return new float[][][]{inner, outer};
+	}
+
+	private static double norm(double a) {
+		return a < 0 ? a + 2 * Math.PI : a;
+	}
+
+	/** Distance along a ray from the centre to a closed polygon around it. */
+	private static double ray(float[][] poly, double dx, double dy) {
+		double best = Double.MAX_VALUE;
+		for (int i = 0; i < poly.length; i++) {
+			float[] p = poly[i];
+			float[] q = poly[(i + 1) % poly.length];
+			double ex = q[0] - p[0];
+			double ey = q[1] - p[1];
+			double det = dx * -ey - dy * -ex;
+			if (Math.abs(det) < 1.0E-12) {
+				continue;
+			}
+			double t = (p[0] * -ey - p[1] * -ex) / det;
+			double u = (dx * p[1] - dy * p[0]) / det;
+			if (t > 0 && u >= -1.0E-9 && u <= 1 + 1.0E-9) {
+				best = Math.min(best, t);
+			}
+		}
+		return best;
+	}
+
+	private static void buildCollar(PoseStack.Pose pose, VertexConsumer b, int light) {
+		float[][] in = COLLAR[0];
+		float[][] out = COLLAR[1];
+		int n = in.length;
+		float z = HALF_THICKNESS;
+		// one flat patch of the frame's steel between the bolt heads
+		float u = 0.5F;
+		float v = 0.5F;
+		for (int i = 0; i < n; i++) {
+			int j = (i + 1) % n;
+			float[] a = in[i], a2 = in[j], o = out[i], o2 = out[j];
+			// front, back
+			vertex(b, pose, a[0], a[1], z, u, v, 0, 0, 1, light);
+			vertex(b, pose, o[0], o[1], z, u, v, 0, 0, 1, light);
+			vertex(b, pose, o2[0], o2[1], z, u, v, 0, 0, 1, light);
+			vertex(b, pose, a2[0], a2[1], z, u, v, 0, 0, 1, light);
+			vertex(b, pose, a2[0], a2[1], -z, u, v, 0, 0, -1, light);
+			vertex(b, pose, o2[0], o2[1], -z, u, v, 0, 0, -1, light);
+			vertex(b, pose, o[0], o[1], -z, u, v, 0, 0, -1, light);
+			vertex(b, pose, a[0], a[1], -z, u, v, 0, 0, -1, light);
+			// the aperture's edge, facing the middle
+			float nx = -(a2[1] - a[1]);
+			float ny = a2[0] - a[0];
+			float len = Mth.sqrt(nx * nx + ny * ny);
+			if (len < 1.0E-6F) {
+				continue;
+			}
+			nx /= len;
+			ny /= len;
+			vertex(b, pose, a[0], a[1], -z, 0.25F, v, nx, ny, 0, light);
+			vertex(b, pose, a[0], a[1], z, 0.25F, v, nx, ny, 0, light);
+			vertex(b, pose, a2[0], a2[1], z, 0.25F, v, nx, ny, 0, light);
+			vertex(b, pose, a2[0], a2[1], -z, 0.25F, v, nx, ny, 0, light);
+		}
 	}
 
 	@Override
@@ -148,6 +253,7 @@ public class VaultDoorRenderer implements BlockEntityRenderer<VaultDoorBlockEnti
 		float headFront = state.headFront;
 		float screwAngle = state.screwAngle;
 		collector.submitCustomGeometry(poseStack, RENDER_TYPE, (pose, buffer) -> buildArm(pose, buffer, armLight, headFront, screwAngle));
+		collector.submitCustomGeometry(poseStack, COLLAR_TYPE, (pose, buffer) -> buildCollar(pose, buffer, armLight));
 		float side = state.rollLeft ? 1 : -1;
 		poseStack.translate(side * state.roll, 0, -state.pull);
 		poseStack.rotate(Axis.ZP.rotation(-side * state.roll / VaultDoorBlockEntity.RADIUS));

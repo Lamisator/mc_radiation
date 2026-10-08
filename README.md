@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.9.1.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.9.2.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -63,7 +63,7 @@ Version 1.2.0 adds everything you need to build a Fallout-style fallout shelter.
 
 | Block | What it does |
 |-------|--------------|
-| **Vault Door** | The big cog door for a round 5×5 opening. Place it in the middle of the opening, facing the outside. A **screw arm** behind it extends, screws into the cog, pulls it back into the vault and lets go; the cog then rolls aside. Closing runs the other way. An alarm klaxon sounds the whole time. It is blast-proof. |
+| **Vault Door** | The big cog door for a round 5×5 opening. Place it in the middle of the opening, facing the outside. It sits flush with the wall on both sides, in a steel collar that fills the opening around the cog. A **screw arm** behind it extends, screws into the cog, pulls it back into the vault and lets go; the cog then rolls aside. Closing runs the other way. An alarm klaxon sounds the whole time. It is blast-proof. |
 | **Vault Door Console** | A pedestal with a big button: opens or closes the nearest vault door within 16 blocks. A vault door also toggles on a redstone pulse. |
 | **Vault Alarm Light** | A rotating amber warning light. It spins and lights up while a vault door within 16 blocks opens or closes. Mount it on any wall, floor or ceiling. |
 | **Vault Sliding Door** | A two-block steel door that slides up into the wall above it. Doors standing side by side in the same wall open together, so you can build wider doorways. Opens by hand or redstone. |
@@ -377,7 +377,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.9.1.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.9.2.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).
