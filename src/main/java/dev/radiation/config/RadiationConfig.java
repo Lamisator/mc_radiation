@@ -254,6 +254,8 @@ public class RadiationConfig {
 			m.put("fission", 5f);
 			m.put("thermonuclear", 15f);
 			m.put("tsar", 40f);
+			// RedButton's fusion pulse: hardly any fission products, gone in a few days
+			m.put("fusion", 3f);
 			return m;
 		}
 		/** How much wider a cloud gets per block it drifts: the faster it spreads, the sooner it is too thin to matter. */
@@ -276,6 +278,8 @@ public class RadiationConfig {
 			if (groundZeroDays == null) {
 				groundZeroDays = defaultGroundZeroDays();
 			}
+			// warheads added since the config was written get their default lifetime
+			defaultGroundZeroDays().forEach(groundZeroDays::putIfAbsent);
 			groundZeroDays.replaceAll((k, v) -> v == null ? falloutLifetimeDays : Math.max(0, v));
 			fadedRads = Math.max(0.0001f, fadedRads);
 			falloutFactor = Math.clamp(falloutFactor, 0f, 1000f);

@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.9.2.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.9.3.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -232,6 +232,7 @@ fades away too: before 1.9.0 it stayed forever. Since 1.9.1 **the smaller the wa
 | Fission | 5 days | 1 day |
 | Thermonuclear | 15 days | 3 days |
 | Tsar | 40 days | 8 days |
+| Fusion pulse (since 1.9.3) | 3 days | 0.6 days |
 
 In a test, a tactical ground zero went from 30 rad/s to 15 after a fifth of a day, 3 after four fifths and nothing after a
 day; a Tsar's was still at 229 of 250 rad/s. Sources from older worlds are converted when the world loads. What
@@ -332,7 +333,7 @@ on load; 1.8.0 empties `food.notContaminating` if it still holds the old default
 | `clouds.maxTravelBlocks` | 2000 | The farthest a cloud travels; it thins out over the last quarter |
 | `clouds.falloutLongHalfLifeDays` | 20 | Half-life of fallout's long-lived part (ground zero's is at most half its lifetime) |
 | `clouds.falloutLifetimeDays` | 40 | Fallout is gone completely after this many days |
-| `clouds.groundZeroDays` | tactical 1, fission 5, thermonuclear 15, tsar 40 | A nuclear detonation's ground zero is gone after this many days, per warhead; half-lives scale with it |
+| `clouds.groundZeroDays` | tactical 1, fission 5, thermonuclear 15, tsar 40, fusion 3 | A nuclear detonation's ground zero is gone after this many days, per warhead; half-lives scale with it |
 | `clouds.spreadPerBlock` | 0.012 | How much wider it gets per block (wider = thinner); 1.5 had 0.025 |
 | `clouds.fadedRads` | 0.001 | A cloud is gone when the dose rate under it falls below this |
 | `clouds.falloutFactor` | 5.0 | All fallout multiplied by this (1 = as in 1.5) |
@@ -377,7 +378,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.9.2.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.9.3.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).
