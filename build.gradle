@@ -43,6 +43,7 @@ loom {
 				vmArg "-Dradiation.map=" + (project.findProperty("map") ?: "")
 				vmArg "-Dradiation.scene=" + (project.findProperty("scene") ?: "")
 				vmArg "-Dradiation.mapShots=" + (project.findProperty("mapShots") ?: "")
+				vmArg "-Dradiation.renderDistance=" + (project.findProperty("renderDistance") ?: "10")
 				if (project.hasProperty("kioskOnly")) {
 					vmArg "-Dradiation.kioskOnly=true"
 				}

@@ -156,6 +156,21 @@ public class VaultTour implements FabricClientGameTest {
 			context.runOnClient(mc -> mc.options.renderDistance().set(10));
 			String shots = System.getProperty("radiation.mapShots", "");
 			if (!shots.isEmpty()) {
+				// far cameras: the integrated server sends chunks only within the view distance the client reported, so tell
+				// it the new one; photograph without the HUD
+				int rd = Integer.getInteger("radiation.renderDistance", 10);
+				sp.getServer().runOnServer(server -> {
+					server.getPlayerList().setViewDistance(rd);
+					server.getPlayerList().setSimulationDistance(Math.min(rd, 12));
+				});
+				context.runOnClient(mc -> {
+					mc.options.renderDistance().set(rd);
+					mc.options.broadcastOptions();
+					if (!mc.gui.hud.isHidden()) {
+						mc.gui.hud.toggle();
+					}
+				});
+				context.waitTicks(20);
 				this.shotList(context, sp, java.nio.file.Path.of(shots));
 				return;
 			}
