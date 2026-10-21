@@ -64,6 +64,8 @@ public final class RadiationTracker {
 	public static void onServerStarted(MinecraftServer server) {
 		sources = RadiationSources.load(server);
 		RadiationEcology.reset();
+		EmitterIndex.reset();
+		clearAbsorptionCache();
 		STATES.clear();
 		VISUALIZERS.clear();
 		RadiationMod.LOGGER.info("Loaded {} radiation zones, {} sources and {} barrels",
@@ -75,6 +77,8 @@ public final class RadiationTracker {
 			sources.save();
 		}
 		sources = null;
+		RadiationEcology.reset();
+		EmitterIndex.reset();
 		STATES.clear();
 		VISUALIZERS.clear();
 	}
@@ -136,7 +140,7 @@ public final class RadiationTracker {
 		if (ticks % 10 == 0 && !VISUALIZERS.isEmpty()) {
 			visualize(server);
 		}
-		if (config.ecology.enabled && ticks % config.ecology.intervalTicks == 0) {
+		if (config.ecology.enabled) {
 			RadiationEcology.tick(server, config);
 		}
 		if (ticks % 100 == 0) {
@@ -270,6 +274,8 @@ public final class RadiationTracker {
 
 	public static void clearCaches() {
 		EFFECT_CACHE.clear();
+		clearAbsorptionCache();
+		RadiationEcology.reset();
 	}
 
 	// ------------------------------------------------------------------ rads
@@ -359,22 +365,22 @@ public final class RadiationTracker {
 			return total;
 		}
 
-		for (RadiationSources.Emitter e : sources.emitters) {
-			if (!e.dimension.equals(dimension) || e.rads <= 0) {
-				continue;
-			}
-			double dx = e.x + 0.5 - pos.x, dy = e.y + 0.5 - pos.y, dz = e.z + 0.5 - pos.z;
-			double d2 = dx * dx + dy * dy + dz * dz;
-			if (d2 >= (double) e.radius * e.radius) {
-				continue;
-			}
-			BlockPos blockPos = new BlockPos(e.x, e.y, e.z);
-			double t2 = d2 / ((double) e.radius * e.radius);
-			double value = e.rads / Math.max(0.25, d2) * (1 - t2);
-			value *= transmission(level, Vec3.atCenterOf(blockPos), pos, blockPos, config);
-			if (value > 0.0001) {
-				total += (float) value;
-				if (breakdown != null) {
+		if (breakdown == null) {
+			total += (float) EmitterIndex.exposure(level, pos, sources, dimension, config);
+		} else {
+			// block by block, so the breakdown can name each one
+			for (RadiationSources.Emitter e : sources.emitters) {
+				if (!e.dimension.equals(dimension)) {
+					continue;
+				}
+				double value = EmitterIndex.unshielded(e, pos);
+				if (value <= EmitterIndex.NEGLIGIBLE) {
+					continue;
+				}
+				BlockPos blockPos = new BlockPos(e.x, e.y, e.z);
+				value *= transmission(level, Vec3.atCenterOf(blockPos), pos, blockPos, config);
+				if (value > EmitterIndex.NEGLIGIBLE) {
+					total += (float) value;
 					breakdown.add(Component.literal(String.format(Locale.ROOT, "  %s at %d %d %d: %.2f rad/s", e.block, e.x, e.y, e.z, value)));
 				}
 			}
@@ -414,6 +420,20 @@ public final class RadiationTracker {
 
 	/** Fraction of a block's radiation that is absorbed by it as a shield; 0 for air and things that do not shield. */
 	public static float absorption(BlockState state, RadiationConfig config) {
+		float[] cache = absorptionCache;
+		int id = net.minecraft.world.level.block.Block.BLOCK_STATE_REGISTRY.getId(state);
+		if (id < 0 || id >= cache.length) {
+			return computeAbsorption(state, config);
+		}
+		float a = cache[id];
+		if (Float.isNaN(a)) {
+			a = computeAbsorption(state, config);
+			cache[id] = a;
+		}
+		return a;
+	}
+
+	private static float computeAbsorption(BlockState state, RadiationConfig config) {
 		if (state.is(SHIELDING_HEAVY)) {
 			return config.heavyShielding;
 		}
@@ -426,6 +446,15 @@ public final class RadiationTracker {
 		return state.isSolidRender() ? config.shieldingPerBlock : 0;
 	}
 
+	/** Absorption per block state id (NaN = not looked up yet); emptied when the config or the block tags change. */
+	private static volatile float[] absorptionCache = new float[0];
+
+	public static void clearAbsorptionCache() {
+		float[] fresh = new float[net.minecraft.world.level.block.Block.BLOCK_STATE_REGISTRY.size()];
+		java.util.Arrays.fill(fresh, Float.NaN);
+		absorptionCache = fresh;
+	}
+
 	public static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> SHIELDING_HEAVY =
 			net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, RadiationMod.id("shielding_heavy"));
 	public static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> SHIELDING_CONCRETE =
@@ -433,25 +462,43 @@ public final class RadiationTracker {
 
 	/** Fraction of radiation that gets through every block on the line between two points (each block counted once, 48 at most). */
 	public static double transmission(ServerLevel level, Vec3 from, Vec3 to, @Nullable BlockPos ignore, RadiationConfig config) {
-		Vec3 delta = to.subtract(from);
-		int steps = (int) Math.ceil(delta.length() * 4);
-		BlockPos targetBlock = BlockPos.containing(to);
-		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-		long last = Long.MIN_VALUE;
+		double dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
+		int steps = (int) Math.ceil(Math.sqrt(dx * dx + dy * dy + dz * dz) * 4);
+		int tx = Mth.floor(to.x), ty = Mth.floor(to.y), tz = Mth.floor(to.z);
+		boolean skipOwn = ignore != null;
+		int ix = skipOwn ? ignore.getX() : 0, iy = skipOwn ? ignore.getY() : 0, iz = skipOwn ? ignore.getZ() : 0;
+		int minY = level.getMinY(), maxY = level.getMaxY();
+		var chunks = level.getChunkSource();
+		int chunkX = Integer.MIN_VALUE, chunkZ = Integer.MIN_VALUE;
+		net.minecraft.world.level.chunk.LevelChunk chunk = null;
+		int lx = Integer.MIN_VALUE, ly = Integer.MIN_VALUE, lz = Integer.MIN_VALUE;
 		double through = 1;
 		int count = 0;
 		for (int i = 1; i < steps; i++) {
 			double t = (double) i / steps;
-			cursor.set(from.x + delta.x * t, from.y + delta.y * t, from.z + delta.z * t);
-			long packed = cursor.asLong();
-			if (packed == last || cursor.equals(ignore) || cursor.equals(targetBlock)) {
+			int x = Mth.floor(from.x + dx * t), y = Mth.floor(from.y + dy * t), z = Mth.floor(from.z + dz * t);
+			if (x == lx && y == ly && z == lz) {
 				continue;
 			}
-			last = packed;
-			if (!level.isLoaded(cursor)) {
+			lx = x;
+			ly = y;
+			lz = z;
+			if (x == tx && y == ty && z == tz || skipOwn && x == ix && y == iy && z == iz || y < minY || y > maxY) {
 				continue;
 			}
-			float a = absorption(level.getBlockState(cursor), config);
+			if (x >> 4 != chunkX || z >> 4 != chunkZ) {
+				chunkX = x >> 4;
+				chunkZ = z >> 4;
+				chunk = chunks.getChunkNow(chunkX, chunkZ);
+			}
+			if (chunk == null) {
+				continue;
+			}
+			var section = chunk.getSection(chunk.getSectionIndex(y));
+			if (section.hasOnlyAir()) {
+				continue;
+			}
+			float a = absorption(section.getBlockState(x & 15, y & 15, z & 15), config);
 			if (a > 0) {
 				through *= 1 - a;
 				if (++count >= 48 || through < 1e-6) {

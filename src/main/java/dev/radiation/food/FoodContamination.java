@@ -261,7 +261,7 @@ public final class FoodContamination {
 					if (!plant(s)) continue;
 					int cell = (dx >> 2) + (dz >> 2) * 4;
 					if (Float.isNaN(cells[cell])) {
-						cells[cell] = RadiationTracker.contaminationAt(level, new Vec3(x0 + (dx & ~3) + 2.0, y + 0.5, z0 + (dz & ~3) + 2.0));
+						cells[cell] = dev.radiation.world.RadiationEcology.contaminationAt(level, new BlockPos(x0 + dx, y, z0 + dz));
 					}
 					float rads = cells[cell] * cfg.cropUptake;
 					if (rads < 0.07f) continue;
@@ -315,9 +315,6 @@ public final class FoodContamination {
 		RadiationConfig.Food cfg = RadiationConfig.get().food;
 		for (BlockEntity be : List.copyOf(chunk.getBlockEntities().values())) {
 			if (!(be instanceof Container container) || be.isRemoved()) continue;
-			float rate = RadiationTracker.contaminationAt(level, Vec3.atCenterOf(be.getBlockPos()));
-			if (rate < 0.0005f) continue;
-			float pending = be.getAttachedOrElse(PENDING, 0f) + rate * seconds * cfg.storageUptake;
 			float most = 0;
 			boolean any = false;
 			for (int i = 0; i < container.getContainerSize(); i++) {
@@ -332,6 +329,9 @@ public final class FoodContamination {
 				if (be.hasAttached(PENDING)) be.removeAttached(PENDING);
 				continue;
 			}
+			float rate = dev.radiation.world.RadiationEcology.contaminationAt(level, be.getBlockPos());
+			if (rate < 0.0005f) continue;
+			float pending = be.getAttachedOrElse(PENDING, 0f) + rate * seconds * cfg.storageUptake;
 			if (pending >= Math.max(0.05f, most * 0.1f)) {
 				for (int i = 0; i < container.getContainerSize(); i++) {
 					ItemStack s = container.getItem(i);

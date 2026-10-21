@@ -154,6 +154,12 @@ public class RadiationConfig {
 		/** How often the land near radiation is looked at, in ticks, and how many surface blocks per chunk each time. */
 		public int intervalTicks = 20;
 		public int samplesPerChunk = 4;
+		/**
+		 * Server time per tick the land, the animals and stored food may take, in milliseconds. A sweep that needs more
+		 * (thousands of radiating blocks after a meltdown, a wide fallout area) carries on in the next ticks instead of
+		 * freezing the server; the next sweep starts {@code intervalTicks} after the last one began, or when it ends.
+		 */
+		public float tickBudgetMillis = 5;
 		/** Chance that a sampled block above a threshold actually changes this time. */
 		public float changeChance = 0.5f;
 
@@ -187,6 +193,8 @@ public class RadiationConfig {
 			if (cropStuntRads <= cropSlowdownRads) cropStuntRads = cropSlowdownRads * 10;
 			intervalTicks = Math.max(1, intervalTicks);
 			samplesPerChunk = Math.clamp(samplesPerChunk, 0, 256);
+			if (!(tickBudgetMillis > 0)) tickBudgetMillis = 5;
+			tickBudgetMillis = Math.min(tickBudgetMillis, 50);
 			changeChance = Math.clamp(changeChance, 0f, 1f);
 		}
 	}

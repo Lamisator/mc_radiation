@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.9.3.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.9.4.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -268,6 +268,7 @@ The rest need operator permission (or cheats enabled in singleplayer):
 | `/radiation list` (or `zone list` / `source list`) | List everything |
 | `/radiation show [seconds]` | Draws zones (green), sources (red) and barrels (yellow) with particles. `0` turns it off. |
 | `/radiation check [pos]` | Radiation level at a position, broken down by zone/source |
+| `/radiation benchmark [radius]` | Dose rates on an 8-block grid around you (default 128 blocks), worked out the server's way (radiating blocks in groups) and block by block: the time each took and the largest difference |
 | `/radiation get <player>` | Show a player's rads |
 | `/radiation set <players> <amount>` / `add <players> <amount>` | Change rads (negative `add` removes) |
 | `/radiation clear [players]` | Reset rads to 0 |
@@ -340,6 +341,7 @@ on load; 1.8.0 empties `food.notContaminating` if it still holds the old default
 | `clouds.rainFactor` | 5.0 | Rain: this many times as much fallout per block |
 | `clouds.rainWashout` | 20.0 | Rain: the cloud is used up this many times as fast per block |
 | `ecology.intervalTicks`, `ecology.samplesPerChunk`, `ecology.changeChance` | 20, 4, 0.5 | How often, how many surface blocks per chunk near radiation, and the chance a block above a threshold changes each time: higher is faster |
+| `ecology.tickBudgetMillis` | 5 | Server time per tick for the land, animals and stored food (since 1.9.4); a sweep that needs more goes on in the next ticks |
 
 **`config/radiation-client.json`**: per-player display settings:
 
@@ -351,6 +353,21 @@ on load; 1.8.0 empties `food.notContaminating` if it still holds the old default
 | `showWhileHoldingGeiger` | true | |
 | `geigerVolume` | 0.6 | 0 mutes the clicks |
 | `geigerClicksPerRad`, `geigerMaxClicksPerSecond` | 2.5, 60 | How busy the Geiger counter sounds |
+
+## Performance
+
+Since 1.9.4 a melted-down reactor no longer stalls the server. Before that, a blown-up 1000 MW core (about 2,300 radiating
+debris, corium and fuel blocks) made every dose rate draw a line through the blocks to each of them, and the sweep over
+the land, the animals and stored food took 10-17 seconds at a time, every half minute. Now:
+
+- **Radiating blocks are grouped** in 32- and 8-block cells. A group farther than 48 (or 12) blocks gets one line for the
+  shielding from its strength-weighted centre; every block still counts with its own strength and distance. Near you
+  each block keeps its own line. `/radiation benchmark` compares this with the block-by-block sum: on the blown-up
+  Funkstadt plant both agree to 0.0 %, about 20x faster.
+- **Shielding lines** read the chunk sections directly and remember how much each block state absorbs.
+- **The sweep has a time budget** (`ecology.tickBudgetMillis`, 5 ms per tick) and carries on in the next ticks.
+- **Animals and stored food use the cached dose rates** of the land (per 4x4 cell and height), and a chest without food
+  costs nothing.
 
 ## For mod developers
 
@@ -378,7 +395,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.9.3.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.9.4.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).

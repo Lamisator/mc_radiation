@@ -65,6 +65,8 @@ public class RadiationMod implements ModInitializer {
 			RadiationTracker.saveSources();
 			dev.radiation.world.Clouds.save();
 		});
+		// block tags decide what shields how well
+		ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> RadiationTracker.clearAbsorptionCache());
 		ServerTickEvents.END_SERVER_TICK.register(RadiationTracker::tick);
 		ServerTickEvents.END_SERVER_TICK.register(dev.radiation.world.Clouds::tick);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> RadiationTracker.onPlayerJoin(handler.getPlayer()));

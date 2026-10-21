@@ -102,6 +102,10 @@ public final class RadiationCommands {
 						.executes(ctx -> check(ctx, ctx.getSource().getPosition()))
 						.then(argument("pos", Vec3Argument.vec3())
 								.executes(ctx -> check(ctx, Vec3Argument.getVec3(ctx, "pos")))))
+				.then(literal("benchmark")
+						.executes(ctx -> benchmark(ctx, 128))
+						.then(argument("radius", IntegerArgumentType.integer(8, 512))
+								.executes(ctx -> benchmark(ctx, IntegerArgumentType.getInteger(ctx, "radius")))))
 				.then(literal("show")
 						.executes(ctx -> show(ctx, 60))
 						.then(argument("seconds", IntegerArgumentType.integer(0, 3600))
@@ -282,6 +286,48 @@ public final class RadiationCommands {
 			ctx.getSource().sendSuccess(() -> line, false);
 		}
 		return Math.round(total);
+	}
+
+	/**
+	 * Dose rates on an 8-block grid just above the ground around the caller, worked out as the server does (radiating
+	 * blocks in groups) and block by block as {@code /radiation check} does: how long each takes and how far they differ.
+	 */
+	private static int benchmark(CommandContext<CommandSourceStack> ctx, int radius) {
+		var level = ctx.getSource().getLevel();
+		Vec3 centre = ctx.getSource().getPosition();
+		List<Vec3> points = new ArrayList<>();
+		for (int dx = -radius; dx <= radius; dx += 8) {
+			for (int dz = -radius; dz <= radius; dz += 8) {
+				int x = (int) Math.floor(centre.x) + dx, z = (int) Math.floor(centre.z) + dz;
+				if (dx * dx + dz * dz > radius * radius || !level.hasChunk(x >> 4, z >> 4)) continue;
+				int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, x, z);
+				points.add(new Vec3(x + 0.5, y + 1.0, z + 0.5));
+			}
+		}
+		float[] fast = new float[points.size()];
+		long t0 = System.nanoTime();
+		for (int i = 0; i < fast.length; i++) fast[i] = RadiationTracker.exposureAt(level, points.get(i), null);
+		long t1 = System.nanoTime();
+		float[] exact = new float[points.size()];
+		for (int i = 0; i < exact.length; i++) exact[i] = RadiationTracker.exposureAt(level, points.get(i), new ArrayList<>());
+		long t2 = System.nanoTime();
+		double worst = 0, sumAbs = 0, sumExact = 0;
+		int counted = 0;
+		for (int i = 0; i < fast.length; i++) {
+			sumAbs += Math.abs(fast[i] - exact[i]);
+			sumExact += exact[i];
+			if (exact[i] >= 0.01f) {
+				worst = Math.max(worst, Math.abs(fast[i] - exact[i]) / exact[i]);
+				counted++;
+			}
+		}
+		String line = String.format(Locale.ROOT, "%d points: grouped %.1f ms (%.3f ms each), block by block %.1f ms (%.3f ms each); "
+						+ "total %.1f vs %.1f rad/s, worst difference %.1f %% (of %d points over 0.01 rad/s)",
+				points.size(), (t1 - t0) / 1e6, (t1 - t0) / 1e6 / Math.max(1, points.size()), (t2 - t1) / 1e6, (t2 - t1) / 1e6 / Math.max(1, points.size()),
+				java.util.stream.IntStream.range(0, fast.length).mapToDouble(i -> fast[i]).sum(), sumExact, worst * 100, counted);
+		dev.radiation.RadiationMod.LOGGER.info("Radiation benchmark: {}", line);
+		ctx.getSource().sendSuccess(() -> Component.literal(line), false);
+		return points.size();
 	}
 
 	private static int show(CommandContext<CommandSourceStack> ctx, int seconds) throws CommandSyntaxException {

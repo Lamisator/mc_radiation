@@ -28,6 +28,8 @@ public class RadiationSources {
 	/** Radiating blocks of other mods (see RadiationApi#setEmitter), kept in sync by them. */
 	public List<Emitter> emitters = new ArrayList<>();
 	private transient long version;
+	/** Changes only when emitters come or go (not when their strength changes), for the emitter grouping. */
+	private transient long emitterLayout;
 	private transient java.util.Map<String, Emitter> emitterIndex;
 
 	private transient Path path;
@@ -165,6 +167,7 @@ public class RadiationSources {
 			this.emitters.remove(old);
 		}
 		this.emitters.add(e);
+		this.emitterLayout++;
 		this.markDirty();
 	}
 
@@ -172,6 +175,7 @@ public class RadiationSources {
 		Emitter old = this.emitterIndex().remove(key);
 		if (old != null) {
 			this.emitters.remove(old);
+			this.emitterLayout++;
 			this.markDirty();
 			return true;
 		}
@@ -238,6 +242,10 @@ public class RadiationSources {
 	/** Changes with every change to zones, sources, barrels or emitters (for caches). */
 	public long version() {
 		return version;
+	}
+
+	public long emitterLayout() {
+		return emitterLayout;
 	}
 
 	public void saveIfDirty() {

@@ -49,11 +49,16 @@ public final class RadiationEcology {
 
 	private static final Map<String, LongOpenHashSet> HOT = new HashMap<>();
 	private static final Map<String, Long2FloatOpenHashMap> RATES = new HashMap<>();
+	private static final Map<String, Long2FloatOpenHashMap> FOOD_RATES = new HashMap<>();
+	/** The rest of the current sweep, one piece per chunk (see {@link #tick}). */
+	private static final java.util.ArrayDeque<Runnable> WORK = new java.util.ArrayDeque<>();
+	private static long sweepAt = Long.MIN_VALUE;
+	private static long animalsAt = Long.MIN_VALUE;
 	private static long indexedVersion = Long.MIN_VALUE;
 	private static long indexedAt = Long.MIN_VALUE;
 	private static long ratesSince;
 	private static int runs;
-	private static long foodAt;
+	private static long foodAt = Long.MIN_VALUE;
 
 	private RadiationEcology() {
 	}
@@ -61,8 +66,13 @@ public final class RadiationEcology {
 	public static void reset() {
 		HOT.clear();
 		RATES.clear();
+		FOOD_RATES.clear();
+		WORK.clear();
 		indexedVersion = Long.MIN_VALUE;
 		indexedAt = Long.MIN_VALUE;
+		sweepAt = Long.MIN_VALUE;
+		animalsAt = Long.MIN_VALUE;
+		foodAt = Long.MIN_VALUE;
 	}
 
 	// ------------------------------------------------------------------ crops (called for every random tick)
@@ -89,42 +99,80 @@ public final class RadiationEcology {
 
 	// ------------------------------------------------------------------ the land (every intervalTicks)
 
+	/**
+	 * Called every tick: starts a sweep every {@code intervalTicks} and works through it within the tick budget, so a
+	 * sweep that needs more time (a wide hot area, thousands of radiating blocks) is spread over the next ticks.
+	 */
 	public static void tick(MinecraftServer server, RadiationConfig config) {
-		RadiationSources sources = RadiationTracker.sources();
 		long now = server.overworld().getGameTime();
+		RadiationConfig.Ecology eco = config.ecology;
+		if (WORK.isEmpty() && (now - sweepAt >= eco.intervalTicks || now < sweepAt)) {
+			startSweep(server, config, now);
+		}
+		if (WORK.isEmpty()) {
+			return;
+		}
+		long deadline = System.nanoTime() + (long) (eco.tickBudgetMillis * 1_000_000);
+		do {
+			WORK.poll().run();
+		} while (!WORK.isEmpty() && System.nanoTime() < deadline);
+	}
+
+	private static void startSweep(MinecraftServer server, RadiationConfig config, long now) {
+		RadiationSources sources = RadiationTracker.sources();
+		long sinceSweep = sweepAt == Long.MIN_VALUE || now < sweepAt ? Long.MAX_VALUE : now - sweepAt;
+		sweepAt = now;
 		if (sources.version() != indexedVersion || now - indexedAt >= REINDEX_TICKS || now < indexedAt) {
 			index(server, sources, config, now);
 		}
 		if (now - ratesSince >= CELL_TTL_TICKS || now < ratesSince) {
 			RATES.clear();
+			FOOD_RATES.clear();
 			ratesSince = now;
 		}
 		RadiationConfig.Ecology eco = config.ecology;
 		boolean animals = eco.animalsTakeRads && (++runs % 2 == 0);
-		boolean storage = config.food.enabled && now - foodAt >= config.food.storageIntervalTicks;
-		if (storage || now < foodAt) foodAt = now;
+		float animalSeconds = elapsedSeconds(animalsAt, now, eco.intervalTicks * 2);
+		if (animals) animalsAt = now;
+		boolean storage = config.food.enabled && (now - foodAt >= config.food.storageIntervalTicks || now < foodAt);
+		float foodSeconds = elapsedSeconds(foodAt, now, config.food.storageIntervalTicks);
+		if (storage) foodAt = now;
 		for (ServerLevel level : server.getAllLevels()) {
 			LongOpenHashSet hot = HOT.get(RadiationTracker.dimensionId(level));
 			if (hot == null || hot.isEmpty()) {
 				continue;
 			}
 			RandomSource random = level.getRandom();
-			for (long chunk : hot.toLongArray()) {
+			long[] chunks = hot.toLongArray();
+			for (long chunk : chunks) {
 				int cx = ChunkPos.getX(chunk), cz = ChunkPos.getZ(chunk);
-				if (!level.hasChunk(cx, cz)) {
-					continue;
-				}
-				for (int i = 0; i < eco.samplesPerChunk; i++) {
-					sample(level, (cx << 4) + random.nextInt(16), (cz << 4) + random.nextInt(16), eco, random);
-				}
+				WORK.add(() -> {
+					if (!level.hasChunk(cx, cz)) {
+						return;
+					}
+					for (int i = 0; i < eco.samplesPerChunk; i++) {
+						sample(level, (cx << 4) + random.nextInt(16), (cz << 4) + random.nextInt(16), eco, random);
+					}
+				});
 			}
 			if (animals) {
-				animals(level, hot, eco, config, eco.intervalTicks * 2 / 20f);
+				WORK.add(() -> animals(level, hot, eco, config, animalSeconds));
 			}
 			if (storage) {
-				food(level, hot, config.food.storageIntervalTicks / 20f);
+				for (long chunk : chunks) {
+					WORK.add(() -> foodInChunk(level, chunk, foodSeconds));
+				}
+				WORK.add(() -> foodOnGround(level, hot, foodSeconds));
 			}
 		}
+	}
+
+	/** Seconds since a sweep part last ran (it may have been stretched over many ticks), {@code usualTicks} the first time. */
+	private static float elapsedSeconds(long since, long now, int usualTicks) {
+		if (since == Long.MIN_VALUE || now < since) {
+			return usualTicks / 20f;
+		}
+		return Math.min(now - since, 1200) / 20f;
 	}
 
 	private static void sample(ServerLevel level, int x, int z, RadiationConfig.Ecology eco, RandomSource random) {
@@ -213,7 +261,7 @@ public final class RadiationEcology {
 			if (!near && rads <= 0) {
 				continue;
 			}
-			float rate = near ? RadiationTracker.exposureAt(level, mob.position().add(0, mob.getBbHeight() * 0.5, 0), null) : 0;
+			float rate = near ? rateAt(level, BlockPos.containing(mob.position().add(0, mob.getBbHeight() * 0.5, 0))) : 0;
 			rads = Math.clamp(rads + rate * seconds - config.naturalDecayPerSecond * seconds, 0, config.maxRads);
 			if (rads <= 0 && had == null) {
 				continue;
@@ -228,17 +276,19 @@ public final class RadiationEcology {
 
 	// ------------------------------------------------------------------ food in storage
 
-	private static void food(ServerLevel level, LongOpenHashSet hot, float seconds) {
-		for (long chunk : hot.toLongArray()) {
-			var c = level.getChunkSource().getChunkNow(ChunkPos.getX(chunk), ChunkPos.getZ(chunk));
-			if (c != null) {
-				dev.radiation.food.FoodContamination.storage(level, c, seconds);
-				dev.radiation.food.FoodContamination.crops(level, c);
-			}
+	private static void foodInChunk(ServerLevel level, long chunk, float seconds) {
+		var c = level.getChunkSource().getChunkNow(ChunkPos.getX(chunk), ChunkPos.getZ(chunk));
+		if (c != null) {
+			dev.radiation.food.FoodContamination.storage(level, c, seconds);
+			dev.radiation.food.FoodContamination.crops(level, c);
 		}
+	}
+
+	private static void foodOnGround(ServerLevel level, LongOpenHashSet hot, float seconds) {
 		for (Entity e : level.getAllEntities()) {
-			if (e instanceof net.minecraft.world.entity.item.ItemEntity item && item.isAlive() && hot.contains(ChunkPos.pack(item.blockPosition()))) {
-				dev.radiation.food.FoodContamination.onGround(item, RadiationTracker.contaminationAt(level, item.position()), seconds);
+			if (e instanceof net.minecraft.world.entity.item.ItemEntity item && item.isAlive() && hot.contains(ChunkPos.pack(item.blockPosition()))
+					&& dev.radiation.food.FoodContamination.contaminable(item.getItem())) {
+				dev.radiation.food.FoodContamination.onGround(item, contaminationAt(level, item.blockPosition()), seconds);
 			}
 		}
 	}
@@ -257,6 +307,32 @@ public final class RadiationEcology {
 		if (Float.isNaN(rate)) {
 			Vec3 center = new Vec3((pos.getX() & ~3) + 2.0, pos.getY() + 0.5, (pos.getZ() & ~3) + 2.0);
 			rate = RadiationTracker.exposureAt(level, center, null);
+			if (cache.size() > 200_000) {
+				cache.clear();
+			}
+			cache.put(cell, rate);
+		}
+		return rate;
+	}
+
+	/**
+	 * What gets into food at a block ({@link RadiationTracker#contaminationAt}), cached like {@link #rateAt}. With the
+	 * default food settings that is all of the radiation there, so it is the dose rate itself.
+	 */
+	public static float contaminationAt(ServerLevel level, BlockPos pos) {
+		RadiationConfig.Food food = RadiationConfig.get().food;
+		if (food.gammaContaminates && food.notContaminating.isEmpty()) {
+			return rateAt(level, pos);
+		}
+		Long2FloatOpenHashMap cache = FOOD_RATES.computeIfAbsent(RadiationTracker.dimensionId(level), k -> {
+			Long2FloatOpenHashMap m = new Long2FloatOpenHashMap();
+			m.defaultReturnValue(Float.NaN);
+			return m;
+		});
+		long cell = BlockPos.asLong(pos.getX() >> 2, pos.getY(), pos.getZ() >> 2);
+		float rate = cache.get(cell);
+		if (Float.isNaN(rate)) {
+			rate = RadiationTracker.contaminationAt(level, new Vec3((pos.getX() & ~3) + 2.0, pos.getY() + 0.5, (pos.getZ() & ~3) + 2.0));
 			if (cache.size() > 200_000) {
 				cache.clear();
 			}
@@ -292,12 +368,26 @@ public final class RadiationEcology {
 			}
 			markRound(s.dimension, s.x, s.z, hi);
 		}
+		// emitters per 8x8 column: thousands of radiating blocks (a melted-down core) mark the same chunks, and together
+		// they reach farther than each alone
+		Map<String, it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<double[]>> cells = new HashMap<>();
 		for (RadiationSources.Emitter e : sources.emitters) {
-			if (e.rads * 4 < low) {
+			if (e.rads <= 0) {
 				continue;
 			}
-			markRound(e.dimension, e.x + 0.5, e.z + 0.5, Math.min(Math.min(e.radius, Math.sqrt(e.rads / low)), MAX_REACH));
+			double[] c = cells.computeIfAbsent(e.dimension, d -> new it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<>())
+					.computeIfAbsent(ChunkPos.pack(e.x >> 3, e.z >> 3), k -> new double[2]);
+			c[0] += e.rads;
+			c[1] = Math.max(c[1], e.radius);
 		}
+		cells.forEach((dimension, map) -> map.forEach((key, c) -> {
+			if (c[0] * 4 < low) {
+				return;
+			}
+			double reach = Math.min(Math.min(c[1], Math.sqrt(c[0] / low)), MAX_REACH);
+			int x0 = ChunkPos.getX(key) << 3, z0 = ChunkPos.getZ(key) << 3;
+			mark(dimension, (int) Math.floor(x0 - reach), (int) Math.floor(z0 - reach), (int) Math.floor(x0 + 8 + reach), (int) Math.floor(z0 + 8 + reach));
+		}));
 		if (config.barrelRads >= low && config.barrelRadius > 0) {
 			for (RadiationSources.Barrel b : sources.barrels) {
 				markRound(b.dimension, b.x + 0.5, b.z + 0.5, Math.min(config.barrelRadius, MAX_REACH));
