@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.10.1.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.10.2.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -297,7 +297,9 @@ kilometre away, within their render distance.
 
 ## Commands
 
-`/rads` works for every player and shows your own rads and condition.
+`/rads` works for every player and shows your own rads and condition. `/geiger [on | off | volume <percent>]` (since
+1.10.2, works on any server since it runs on your own client) switches the ambient Geiger clicks on or off or sets
+their loudness: 30 % of the original click by default, saved in `config/radiation-client.json`.
 
 The rest need operator permission (or cheats enabled in singleplayer):
 
@@ -398,7 +400,7 @@ on load; 1.8.0 empties `food.notContaminating` if it still holds the old default
 | `hudMode` | `EXPOSURE` | `EXPOSURE` (Fallout-like), `NONZERO` (whenever you have rads), `ALWAYS`, `HIDDEN` |
 | `hudLingerSeconds` | 4 | How long the meter stays after exposure ends |
 | `showWhileHoldingGeiger` | true | |
-| `geigerVolume` | 0.6 | 0 mutes the clicks |
+| `geigerSound`, `geigerVolumePercent` | true, 30 | The ambient Geiger clicks while radiation reaches you: on/off and their loudness in percent of the original click (since 1.10.2; before, they were always at 100 %). In game: `/geiger volume <0-200>`, `/geiger off`, `/geiger on`, `/geiger` shows the setting. An old `geigerVolume` is converted. |
 | `geigerClicksPerRad`, `geigerMaxClicksPerSecond` | 2.5, 60 | How busy the Geiger counter sounds |
 
 ## Performance
@@ -448,7 +450,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.10.1.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.10.2.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).

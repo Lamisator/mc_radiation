@@ -46,6 +46,14 @@ public class ContaminationTour implements FabricClientGameTest {
 			context.waitTicks(40);
 			System.out.println("[contamination] before: " + sp.getServer().computeOnServer(server -> this.measure(server.overworld())));
 
+			// the ambient clicks: what the config file became, then /geiger volume 50, off, on
+			System.out.println("[contamination] geiger config on start: " + context.computeOnClient(mc -> geiger()));
+			for (String c : new String[]{"geiger volume 50", "geiger off", "geiger on", "geiger volume 30"}) {
+				context.runOnClient(mc -> mc.player.connection.sendCommand(c));
+				context.waitTicks(2);
+				System.out.println("[contamination] /" + c + " -> " + context.computeOnClient(mc -> geiger()));
+			}
+
 			// the Geiger counter's probe: sneak + right-click on the meadow
 			sp.getServer().runOnServer(server -> {
 				ServerPlayer p = server.getPlayerList().getPlayers().get(0);
@@ -95,6 +103,11 @@ public class ContaminationTour implements FabricClientGameTest {
 			float after = sp.getServer().computeOnServer(server -> RadiationTracker.getRads(server.getPlayerList().getPlayers().get(0)));
 			System.out.println(String.format(Locale.ROOT, "[contamination] swimming 10 s in the pond: %.1f -> %.1f rad", before, after));
 		}
+	}
+
+	private static String geiger() {
+		dev.radiation.client.ClientConfig c = dev.radiation.client.ClientConfig.get();
+		return String.format(Locale.ROOT, "sound %s, %.0f %%, click volume %.3f", c.geigerSound, c.geigerVolumePercent, c.clickVolume());
 	}
 
 	private int build(ServerLevel level) {

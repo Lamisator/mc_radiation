@@ -41,7 +41,12 @@ public class ClientConfig {
 	public float hudLingerSeconds = 4f;
 	/** Holding a Geiger counter in either hand always shows the meter. */
 	public boolean showWhileHoldingGeiger = true;
-	public float geigerVolume = 0.6f;
+	/** The ambient Geiger clicks while radiation reaches you: on or off ({@code /geiger on|off}). */
+	public boolean geigerSound = true;
+	/** Their loudness in percent of the original click (1.10.1 and before: always 100 %); {@code /geiger volume <percent>}. */
+	public float geigerVolumePercent = 30;
+	/** Up to 1.10.1: absolute volume (0.6 by default); converted to geigerVolumePercent on load. */
+	public Float geigerVolume;
 	/** Geiger clicks per second for each rad per second of exposure. */
 	public float geigerClicksPerRad = 2.5f;
 	public float geigerMaxClicksPerSecond = 60f;
@@ -58,6 +63,29 @@ public class ClientConfig {
 		instance = loaded == null ? new ClientConfig() : loaded;
 		if (instance.hudMode == null) instance.hudMode = HudMode.EXPOSURE;
 		if (instance.hudScale <= 0) instance.hudScale = 1f;
+		if (instance.geigerVolume != null) {
+			// 1.10.1 and before: 0.6 was the untouched default, which becomes the new default of 30 %
+			float old = instance.geigerVolume;
+			if (old <= 0) {
+				instance.geigerSound = false;
+			} else if (Math.abs(old - ORIGINAL_VOLUME) > 1e-4) {
+				instance.geigerVolumePercent = old / ORIGINAL_VOLUME * 100;
+			}
+			instance.geigerVolume = null;
+		}
+		instance.geigerVolumePercent = Math.clamp(instance.geigerVolumePercent, 0, 200);
+		save();
+	}
+
+	/** The click volume of 1.10.1 and before, 100 %. */
+	public static final float ORIGINAL_VOLUME = 0.6f;
+
+	/** Volume of one ambient click, 0 when they are switched off. */
+	public float clickVolume() {
+		return geigerSound ? ORIGINAL_VOLUME * geigerVolumePercent / 100f : 0;
+	}
+
+	public static void save() {
 		try {
 			Files.createDirectories(PATH.getParent());
 			try (Writer writer = Files.newBufferedWriter(PATH)) {

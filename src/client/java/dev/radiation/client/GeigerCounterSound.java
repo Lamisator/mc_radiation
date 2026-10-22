@@ -23,14 +23,15 @@ public final class GeigerCounterSound {
 			return;
 		}
 		ClientConfig config = ClientConfig.get();
-		if (config.geigerVolume <= 0) {
+		float base = config.clickVolume();
+		if (base <= 0) {
 			return;
 		}
 		double clicksPerSecond = Math.min(config.geigerMaxClicksPerSecond, exposure * config.geigerClicksPerRad);
 		int clicks = poisson(clicksPerSecond / 20.0);
 		for (int i = 0; i < Math.min(clicks, 4); i++) {
 			float pitch = 0.85f + RANDOM.nextFloat() * 0.3f;
-			float volume = config.geigerVolume * (0.7f + RANDOM.nextFloat() * 0.3f);
+			float volume = base * (0.7f + RANDOM.nextFloat() * 0.3f);
 			client.getSoundManager().play(new SimpleSoundInstance(ModRegistry.GEIGER_CLICK.location(), SoundSource.PLAYERS, volume, pitch,
 					SoundInstance.createUnseededRandom(), false, 0, SoundInstance.Attenuation.NONE, 0, 0, 0, true));
 		}

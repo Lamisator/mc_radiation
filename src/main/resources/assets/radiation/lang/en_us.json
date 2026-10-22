@@ -101,5 +101,7 @@
   "message.radiation.probe.total": "Patch: %s rad/s (one metre above an even patch of it)",
   "message.radiation.probe.fallout": "  fallout: %s rad/s (fades away)",
   "message.radiation.probe.lasting": "  lasting (fission products): %s rad/s (stays until washed off)",
-  "message.radiation.probe.near": "Strongest patch next to it: %s rad/s"
+  "message.radiation.probe.near": "Strongest patch next to it: %s rad/s",
+  "message.radiation.geiger_sound.on": "Geiger clicks on, volume %s %% (/geiger volume <0-200>, /geiger off)",
+  "message.radiation.geiger_sound.off": "Geiger clicks off (volume %s %%; /geiger on to switch them back on)"
 }

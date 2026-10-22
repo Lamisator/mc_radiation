@@ -32,6 +32,7 @@ public class RadiationClient implements ClientModInitializer {
 		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.COLLECT_SUBMITS.register(CloudRenderer::render);
 
 		ClientTickEvents.END_CLIENT_TICK.register(GeigerCounterSound::tick);
+		GeigerCommand.register();
 		// contaminated food shows the rads it gives, in red right under its name (clean food shows nothing)
 		net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
 			float rads = dev.radiation.food.FoodContamination.of(stack);
