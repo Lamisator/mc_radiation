@@ -178,6 +178,54 @@ public final class RadiationApi {
 		setEmitter(level, pos, 0, 0);
 	}
 
+	/**
+	 * Something radiating that is not a block - an item on the ground, a chest full of fission products, a cask on a
+	 * wagon - at {@code pos} for the next {@code ticks} ticks: {@code radsAtOneMetre}, inverse square, shielded by the
+	 * blocks in between, up to {@code radius}. Call it again (same {@code key}) every few seconds while it lasts; it goes
+	 * out on its own when no longer renewed. Not saved with the world. Since 1.10.0.
+	 */
+	public static void pulse(ServerLevel level, String key, Vec3 pos, float radsAtOneMetre, float radius, int ticks) {
+		if (!(radsAtOneMetre > 0) || ticks <= 0) {
+			dev.radiation.world.RadiationTracker.endPulse(key);
+			return;
+		}
+		dev.radiation.world.RadiationTracker.pulse(level, key, pos, radsAtOneMetre, radius, ticks);
+	}
+
+	public static void endPulse(String key) {
+		dev.radiation.world.RadiationTracker.endPulse(key);
+	}
+
+	/**
+	 * Lasting contamination: {@code rads} (rad/s one metre above an even patch) more in the 4x4 patch of ground at
+	 * {@code surface} (the air block above the contaminated floor), or in the water if it is water there. Fades with
+	 * {@code contamination.lastingHalfLifeDays}; washed off with the decontamination sprayer. Since 1.10.0.
+	 */
+	public static void contaminate(ServerLevel level, BlockPos surface, float rads) {
+		dev.radiation.world.Contamination.contaminate(level, surface, rads);
+	}
+
+	/**
+	 * Every contaminated 4x4 patch of ground or water in the level with at least {@code least} rad/s: west/north corner,
+	 * height (Integer.MIN_VALUE while it has not been settled on unloaded land), dose rate, water or ground. Since 1.10.0.
+	 */
+	public static void forEachContamination(ServerLevel level, float least, dev.radiation.world.Contamination.PatchVisitor visitor) {
+		dev.radiation.world.Contamination.forEach(level, least, visitor);
+	}
+
+	/** The contamination (rad/s) of the ground patch at {@code surface}, or of the water if it is water there. Since 1.10.0. */
+	public static float contaminationAt(ServerLevel level, BlockPos surface) {
+		return dev.radiation.world.Contamination.at(level, surface);
+	}
+
+	/**
+	 * Washes {@code share} of the contamination off the ground within {@code radius} blocks of {@code surface}; part of it
+	 * runs into nearby water. Returns the dose rate washed off. Since 1.10.0.
+	 */
+	public static float wash(ServerLevel level, BlockPos surface, double radius, float share) {
+		return dev.radiation.world.Contamination.wash(level, surface, radius, share, RadiationConfig.get().contamination.runoffToWater);
+	}
+
 	/** A sensible cut-off radius for an emitter: where it falls below 0.01 rad/s unshielded (at most 96 blocks). */
 	public static float radiusFor(float radsAtOneMetre) {
 		return (float) Math.clamp(Math.sqrt(Math.max(0, radsAtOneMetre) / 0.01), 4, 96);

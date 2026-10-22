@@ -102,6 +102,28 @@ public final class RadiationCommands {
 						.executes(ctx -> check(ctx, ctx.getSource().getPosition()))
 						.then(argument("pos", Vec3Argument.vec3())
 								.executes(ctx -> check(ctx, Vec3Argument.getVec3(ctx, "pos")))))
+				.then(literal("contamination")
+						.executes(ctx -> contamination(ctx, 64))
+						.then(argument("radius", IntegerArgumentType.integer(1, 4096))
+								.executes(ctx -> contamination(ctx, IntegerArgumentType.getInteger(ctx, "radius"))))
+						.then(literal("add").then(argument("pos", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
+								.then(argument("rads", com.mojang.brigadier.arguments.FloatArgumentType.floatArg(0.0001f, 100000f))
+										.executes(ctx -> {
+											var pos = net.minecraft.commands.arguments.coordinates.BlockPosArgument.getBlockPos(ctx, "pos");
+											float rads = com.mojang.brigadier.arguments.FloatArgumentType.getFloat(ctx, "rads");
+											dev.radiation.world.Contamination.contaminate(ctx.getSource().getLevel(), pos, rads);
+											ctx.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
+													"Contaminated the patch at %d %d %d with %.3f rad/s", pos.getX(), pos.getY(), pos.getZ(), rads)), true);
+											return 1;
+										}))))
+						.then(literal("clear").then(argument("radius", IntegerArgumentType.integer(1, 4096))
+								.executes(ctx -> {
+									int r = IntegerArgumentType.getInteger(ctx, "radius");
+									int n = dev.radiation.world.Contamination.clear(ctx.getSource().getLevel(),
+											net.minecraft.core.BlockPos.containing(ctx.getSource().getPosition()), r);
+									ctx.getSource().sendSuccess(() -> Component.literal(n + " contaminated patches removed within " + r + " blocks"), true);
+									return n;
+								}))))
 				.then(literal("benchmark")
 						.executes(ctx -> benchmark(ctx, 128))
 						.then(argument("radius", IntegerArgumentType.integer(8, 512))
@@ -286,6 +308,18 @@ public final class RadiationCommands {
 			ctx.getSource().sendSuccess(() -> line, false);
 		}
 		return Math.round(total);
+	}
+
+	private static int contamination(CommandContext<CommandSourceStack> ctx, int radius) {
+		var lines = dev.radiation.world.Contamination.describe(ctx.getSource().getLevel(),
+				net.minecraft.core.BlockPos.containing(ctx.getSource().getPosition()), radius);
+		if (lines.isEmpty()) {
+			ctx.getSource().sendSuccess(() -> Component.literal("No contaminated ground or water in this dimension"), false);
+		}
+		for (String line : lines) {
+			ctx.getSource().sendSuccess(() -> Component.literal(line), false);
+		}
+		return lines.size();
 	}
 
 	/**

@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.9.4.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.10.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -45,6 +45,7 @@ Rads don't wear off on their own (as in Fallout). You need RadAway, or you have 
 | Item | What it does | Recipe |
 |------|--------------|--------|
 | **Geiger Counter** | Right-click for a detailed reading: ambient radiation, what you absorb, protection, condition. Holding it shows the meter. | Copper ingot (top right), iron / glass pane / iron, yellow dye / redstone / yellow dye |
+| **Decontamination Sprayer** | Right-click water to fill it, hold right-click on contaminated ground to wash it off (since 1.10.0, see [Contaminated ground and water](#contaminated-ground-and-water)) | Tripwire hook (top right), iron / piston / iron, yellow dye / bucket / yellow dye |
 | **RadAway** | Removes 150 rads over 10 seconds | Shapeless: glass bottle + dried kelp + glow berries + sugar |
 | **Rad-X** | Blocks 50% of incoming radiation for 4 minutes | Shapeless: paper + amethyst shard + sugar + orange dye → 2 |
 | **Hazmat Hood / Suit / Trousers / Boots** | Each piece blocks 22.5% (full set 90%) | Shaped like leather armor, using leather and yellow wool (the hood has a glass pane visor) |
@@ -210,15 +211,48 @@ next to a 1.9 rad/s fallout source made the bread in a chest, the wheat beside i
 (with 10 times the normal uptake), a chest beside a radiating block at 2 rad/s got 6 rad into its bread, while the bread
 in the player's inventory stayed clean; eating a loaf set to 30 rad took the player from 0 to 20 rads.
 
+## Contaminated ground and water
+
+Since 1.10.0 radioactivity that comes down **stays in the ground**, patch by patch: every 4x4 column at the height where
+it landed holds its own contamination, so fallout on a roof and a spill on the floor below it are separate. Fallout from
+clouds lands there (it used to be one big source per 48-block square; worlds from before 1.10 are converted on the
+first start), and so do fission products that lie around or are kept in an ordinary chest ([Fission](https://github.com/Lamisator/fission)
+1.5.0). The dose rate one metre above an even patch is its value; neighbouring patches within a few blocks count less,
+walls, roofs and the ground in between shield, and it gets weaker higher up. Fallout fades as it always did; **lasting
+contamination** (spilled fission products) has a half-life of 3650 Minecraft days (`contamination.lastingHalfLifeDays`)
+- in practice it stays until it is washed off.
+
+**Water gets contaminated too.** Fallout that comes down on a lake or river goes into the water, so does the runoff of a
+decontamination, and a lake slowly mixes: every 20 seconds a contaminated patch gives a tenth of its excess to the water
+columns next to it (`contamination.waterMixing`). Standing next to it is harmless - water shields - but **swimming in it
+is not**: in the water you take its full dose rate, and with your head under water you swallow some, which counts again
+(`contamination.swallowedFactor`; a hazmat suit does not help against that). In a test, 10 seconds of diving in a pond
+of 0.62 rad/s gave 13 rad.
+
+### Decontamination Sprayer
+
+![Washing fallout off a meadow with the decontamination sprayer](docs/img/contamination_spraying.png)
+
+A pressure sprayer for washing radioactivity off the ground. **Right-click water to fill it** (32 bursts,
+`contamination.sprayerTank`; the bar shows what is left), then **hold right-click on the contaminated ground**: every
+quarter of a second a burst washes 25 % (`contamination.sprayWashes`) off the patches within 2.5 blocks of the spot
+(`contamination.sprayRadius`), at that height. The action bar shows how much came off. 30 % of what comes off runs into the
+nearest water within 16 blocks, which gets contaminated in turn (`contamination.runoffToWater`); the rest goes down the
+drain. In a test, five seconds of spraying took a meadow from 0.76 to 0.29 rad/s where it was sprayed (the rest comes
+from the patches around it). Recipe: iron ingots, a piston, a bucket, a tripwire hook (the trigger) and yellow dye.
+
+`/radiation contamination [radius]` shows the patches near you (the strongest with its position),
+`/radiation contamination add <pos> <rad/s>` contaminates a patch, `/radiation contamination clear <radius>` removes them.
+
 ## Radioactive clouds, wind and rain
 
 Since 1.5.0 radioactivity can travel: a burning reactor core ([Fission](https://github.com/Lamisator/fission)), a
 nuclear detonation ([RedButton](https://github.com/Lamisator/mc_redbutton)) or an operator's
 `/radiation cloud <pos> <rad/s> [radius] [altitude]` releases a **radioactive cloud**. It rises high into the sky (by default 110 blocks above the
 ground, a nuclear detonation's up to 375; it climbs another 80 as it drifts) and drifts with the wind, spreading as it goes. The ground under it gets its radiation (people indoors are
-shielded by their roofs), and it leaves **fallout** behind: sources that fade like iodine-131 (half-life 8 days)
-except for about 15 % that lasts longer, like caesium-137 (half-life 20 days here). Fallout that lands in the same 48-block square adds up into one
-source.
+shielded by their roofs), and it leaves **fallout** behind in the ground, and in lakes and rivers (see
+[Contaminated ground and water](#contaminated-ground-and-water)): it fades like iodine-131 (half-life 8 days)
+except for about 15 % that lasts longer, like caesium-137 (half-life 20 days here).
 
 **Since 1.9.0 everything fades away completely.** A cloud travels **at most 2,000 blocks** (`clouds.maxTravelBlocks`);
 over its last 500 blocks it thins out to nothing, and it is gone after 40 minutes at the latest, or sooner when it has
@@ -268,6 +302,7 @@ The rest need operator permission (or cheats enabled in singleplayer):
 | `/radiation list` (or `zone list` / `source list`) | List everything |
 | `/radiation show [seconds]` | Draws zones (green), sources (red) and barrels (yellow) with particles. `0` turns it off. |
 | `/radiation check [pos]` | Radiation level at a position, broken down by zone/source |
+| `/radiation contamination [radius]` | Contaminated ground and water near you (since 1.10.0); `add <pos> <rad/s>`, `clear <radius>` |
 | `/radiation benchmark [radius]` | Dose rates on an 8-block grid around you (default 128 blocks), worked out the server's way (radiating blocks in groups) and block by block: the time each took and the largest difference |
 | `/radiation get <player>` | Show a player's rads |
 | `/radiation set <players> <amount>` / `add <players> <amount>` | Change rads (negative `add` removes) |
@@ -341,6 +376,11 @@ on load; 1.8.0 empties `food.notContaminating` if it still holds the old default
 | `clouds.rainFactor` | 5.0 | Rain: this many times as much fallout per block |
 | `clouds.rainWashout` | 20.0 | Rain: the cloud is used up this many times as fast per block |
 | `ecology.intervalTicks`, `ecology.samplesPerChunk`, `ecology.changeChance` | 20, 4, 0.5 | How often, how many surface blocks per chunk near radiation, and the chance a block above a threshold changes each time: higher is faster |
+| `contamination.lastingHalfLifeDays` | 3650 | Half-life of lasting contamination (spilled fission products) |
+| `contamination.sprayWashes`, `contamination.sprayRadius`, `contamination.sprayerTank` | 0.25, 2.5, 32 | Share washed off per burst, its reach in blocks, bursts per filling |
+| `contamination.runoffToWater` | 0.3 | Share of what is washed off that runs into the nearest water |
+| `contamination.waterMixing` | 0.1 | Share of its excess a water patch gives each neighbour every 20 seconds |
+| `contamination.swallowedFactor` | 1.0 | Diving: the water's dose rate counts this much again |
 | `ecology.tickBudgetMillis` | 5 | Server time per tick for the land, animals and stored food (since 1.9.4); a sweep that needs more goes on in the next ticks |
 
 **`config/radiation-client.json`**: per-player display settings:
@@ -387,6 +427,12 @@ by itself once it is down to nothing. `updateSource(level, name, pos, rads, radi
 cloud. Fission's radioactive clouds and fallout use both. Since 1.9.0 sources named `nuke_...` (RedButton's ground zero)
 get a half-life and lifetime by themselves, from `clouds.groundZeroDays` for the warhead in their name.
 
+Since 1.10.0 `pulse(level, key, pos, radsAtOneMetre, radius, ticks)` makes something that is not a block radiate for
+a while (an item on the ground, a cask on a wagon): renew it every few seconds under the same key, it goes out by itself.
+`contaminate(level, surface, rads)` adds lasting contamination to the patch at `surface` (the air block above the floor,
+or the water there), `contaminationAt(level, surface)` reads it, and `wash(level, surface, radius, share)` washes it off.
+Fission 1.5.0 uses them for fission products that lie around or are kept where they do not belong.
+
 ## Building from source
 
 Requires JDK 25.
@@ -395,7 +441,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.9.4.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.10.0.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).

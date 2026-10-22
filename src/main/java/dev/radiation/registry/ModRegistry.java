@@ -119,6 +119,10 @@ public final class ModRegistry {
 			.stacksTo(1)
 			.component(DataComponents.LORE, lore("item.radiation.geiger_counter.desc")));
 
+	public static final Item DECONTAMINATION_SPRAYER = item("decontamination_sprayer", dev.radiation.item.DecontaminationSprayerItem::new,
+			new Item.Properties().stacksTo(1).component(dev.radiation.item.DecontaminationSprayerItem.WATER, 0)
+					.component(DataComponents.LORE, lore("item.radiation.decontamination_sprayer.desc")));
+
 	public static final Item HAZMAT_HELMET = armor("hazmat_helmet", ArmorType.HELMET);
 	public static final Item HAZMAT_CHESTPLATE = armor("hazmat_chestplate", ArmorType.CHESTPLATE);
 	public static final Item HAZMAT_LEGGINGS = armor("hazmat_leggings", ArmorType.LEGGINGS);
@@ -141,6 +145,7 @@ public final class ModRegistry {
 					.icon(() -> new ItemStack(GEIGER_COUNTER))
 					.displayItems((params, output) -> {
 						output.accept(GEIGER_COUNTER);
+						output.accept(DECONTAMINATION_SPRAYER);
 						output.accept(RADAWAY_ITEM);
 						output.accept(RAD_X);
 						output.accept(HAZMAT_HELMET);

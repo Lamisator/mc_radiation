@@ -65,6 +65,8 @@ public final class RadiationTracker {
 		sources = RadiationSources.load(server);
 		RadiationEcology.reset();
 		EmitterIndex.reset();
+		Pulses.clear();
+		Contamination.load(server);
 		clearAbsorptionCache();
 		STATES.clear();
 		VISUALIZERS.clear();
@@ -77,8 +79,10 @@ public final class RadiationTracker {
 			sources.save();
 		}
 		sources = null;
+		Contamination.unload();
 		RadiationEcology.reset();
 		EmitterIndex.reset();
+		Pulses.clear();
 		STATES.clear();
 		VISUALIZERS.clear();
 	}
@@ -86,6 +90,7 @@ public final class RadiationTracker {
 	public static void saveSources() {
 		if (sources != null) {
 			sources.saveIfDirty();
+			Contamination.saveIfDirty();
 		}
 	}
 
@@ -148,6 +153,7 @@ public final class RadiationTracker {
 			validateEmitters(server);
 			removeDecayed(server);
 			sources.saveIfDirty();
+			Contamination.saveIfDirty();
 		}
 	}
 
@@ -159,6 +165,10 @@ public final class RadiationTracker {
 
 		float protection = protection(player, config);
 		float exposure = player.isAlive() ? exposureAt(player.level(), bodyCenter(player), null) * (1 - protection) : 0;
+		if (player.isAlive() && player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)) {
+			// diving in contaminated water: some of it gets swallowed, and a suit does not help with that
+			exposure += (float) (Contamination.waterDose(player.level(), player.getEyePosition()) * config.contamination.swallowedFactor);
+		}
 
 		float rads = getRads(player);
 		float gain = immune ? 0 : exposure * seconds;
@@ -272,6 +282,14 @@ public final class RadiationTracker {
 		}).orElse(null);
 	}
 
+	public static void pulse(ServerLevel level, String key, Vec3 pos, float rads, float radius, int ticks) {
+		Pulses.put(key, new Pulses.Pulse(dimensionId(level), pos.x, pos.y, pos.z, rads, radius, level.getGameTime() + ticks));
+	}
+
+	public static void endPulse(String key) {
+		Pulses.remove(key);
+	}
+
 	public static void clearCaches() {
 		EFFECT_CACHE.clear();
 		clearAbsorptionCache();
@@ -361,9 +379,26 @@ public final class RadiationTracker {
 			}
 		}
 
+		double ground = Contamination.groundDose(level, pos, config);
+		if (ground > 0) {
+			total += (float) ground;
+			if (breakdown != null) {
+				breakdown.add(Component.literal(String.format(Locale.ROOT, "  contaminated ground: %.2f rad/s", ground)));
+			}
+		}
+		double water = Contamination.waterDose(level, pos);
+		if (water > 0) {
+			total += (float) water;
+			if (breakdown != null) {
+				breakdown.add(Component.literal(String.format(Locale.ROOT, "  contaminated water: %.2f rad/s", water)));
+			}
+		}
+
 		if (forFood && !config.food.gammaContaminates) {
 			return total;
 		}
+
+		total += (float) Pulses.exposure(level, pos, dimension, config, breakdown);
 
 		if (breakdown == null) {
 			total += (float) EmitterIndex.exposure(level, pos, sources, dimension, config);

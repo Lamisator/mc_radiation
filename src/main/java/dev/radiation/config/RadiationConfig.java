@@ -73,6 +73,9 @@ public class RadiationConfig {
 	// --- radioactive clouds (burning reactors, nuclear detonations) ---
 	public Clouds clouds = new Clouds();
 
+	// --- contaminated ground and water, decontamination ---
+	public Contamination contamination = new Contamination();
+
 	// --- protection ---
 	/** Fraction of incoming radiation blocked by each worn item. Combined additively, capped by maxProtection. */
 	public Map<String, Float> protectiveItems = defaultProtectiveItems();
@@ -240,6 +243,36 @@ public class RadiationConfig {
 		}
 	}
 
+	/**
+	 * Radioactivity lying in the ground and in water (fallout, spilled fission products), and washing it off with the
+	 * decontamination sprayer.
+	 */
+	public static class Contamination {
+		/** Half-life of lasting contamination (spilled fission products: caesium-137 and the like), in Minecraft days. */
+		public float lastingHalfLifeDays = 3650;
+		/** Share of the contamination one burst of the sprayer washes off the patches it hits. */
+		public float sprayWashes = 0.25f;
+		/** Of what is washed off, this share runs into the nearest water within 16 blocks (if there is any). */
+		public float runoffToWater = 0.3f;
+		/** Water in the sprayer's tank (bursts), and how far around the spot it reaches (blocks). */
+		public int sprayerTank = 32;
+		public float sprayRadius = 2.5f;
+		/** Every 20 seconds contaminated water gives this share of its excess to each neighbouring water column. */
+		public float waterMixing = 0.1f;
+		/** Swimming with the head under contaminated water: this much more again (swallowed water). */
+		public float swallowedFactor = 1.0f;
+
+		void sanitize() {
+			if (!(lastingHalfLifeDays >= 0)) lastingHalfLifeDays = 3650;
+			sprayWashes = Math.clamp(sprayWashes, 0f, 1f);
+			runoffToWater = Math.clamp(runoffToWater, 0f, 1f);
+			sprayerTank = Math.clamp(sprayerTank, 1, 10000);
+			sprayRadius = Math.clamp(sprayRadius, 0.5f, 16f);
+			waterMixing = Math.clamp(waterMixing, 0f, 0.25f);
+			swallowedFactor = Math.max(0, swallowedFactor);
+		}
+	}
+
 	/** Radioactive clouds: how long they last and how much fallout they leave. */
 	public static class Clouds {
 		/** The longest a cloud drifts, in minutes (of play at 20 ticks per second), before it is gone. */
@@ -363,6 +396,8 @@ public class RadiationConfig {
 		food.sanitize();
 		if (clouds == null) clouds = new Clouds();
 		clouds.sanitize();
+		if (contamination == null) contamination = new Contamination();
+		contamination.sanitize();
 		shieldingPerBlock = Math.clamp(shieldingPerBlock, 0f, 1f);
 		concreteShielding = Math.clamp(concreteShielding, 0f, 1f);
 		heavyShielding = Math.clamp(heavyShielding, 0f, 1f);

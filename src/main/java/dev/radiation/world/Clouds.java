@@ -36,9 +36,9 @@ import java.util.UUID;
 /**
  * Radioactive clouds: from a burning reactor core (Fission), a nuclear detonation (RedButton) or anything else that
  * calls {@code RadiationApi.releaseCloud}. A cloud rises to its height above the ground and drifts with the {@link Wind},
- * spreading as it goes. It irradiates the land under it (roofs shield people indoors) and leaves fallout behind:
- * sources that fade like iodine-131 except for a long-lived part like caesium-137. Deposits that land in the same
- * 48-block cell add up into one source.
+ * spreading as it goes. It irradiates the land under it (roofs shield people indoors) and leaves fallout behind in
+ * the ground and in lakes and rivers ({@link Contamination}), fading like iodine-131 except for a long-lived part like
+ * caesium-137; it can be washed off with the decontamination sprayer.
  *
  * <p>Rain washes a cloud out: where it rains under it, it drops its fallout four times as often and five times as
  * heavily per block travelled - the hot spots of Chernobyl's fallout were where it rained - and is gone after a few
@@ -57,6 +57,7 @@ public final class Clouds {
 	/** Iodine-131: 8 days; about 15 % of the early fallout dose rate is long-lived caesium. Game time: 1 day = 24000 ticks. */
 	private static final long IODINE_HALF_LIFE = 8 * 24000L;
 	private static final float LONG_LIVED = 0.15F;
+	/** The narrowest footprint of one deposit (blocks, radius). */
 	private static final int CELL = 48;
 	private static final int PARTICLE_RANGE = 400;
 	private static final double VISIBLE = 1000;
@@ -84,8 +85,6 @@ public final class Clouds {
 	private static State state = new State();
 	private static int nextId;
 	private static Path path;
-	/** Fallout cell ("dimension x z") to the source that collects it. */
-	private static final Map<String, String> CELLS = new HashMap<>();
 	private static final Set<UUID> SEEING = new HashSet<>();
 	/** Smoke columns (a burning reactor...): key to column; they vanish unless renewed. */
 	private static final Map<String, Column> COLUMNS = new HashMap<>();
@@ -113,20 +112,33 @@ public final class Clouds {
 		state.clouds.removeIf(c -> c == null || c.dimension == null);
 		for (Cloud c : state.clouds) c.id = ++nextId;
 		if (Double.isNaN(state.windTowards)) Wind.release(); else Wind.fix(state.windTowards, state.windSpeed);
-		CELLS.clear();
 		long now = server.overworld().getGameTime();
-		for (RadiationSources.PointSource s : RadiationTracker.sources().sources) {
+		int converted = 0;
+		for (Iterator<RadiationSources.PointSource> it = RadiationTracker.sources().sources.iterator(); it.hasNext(); ) {
+			RadiationSources.PointSource s = it.next();
 			if (nuclear(s, now)) {
 				RadiationTracker.sources().markDirty();
 			}
 			if (s.name.startsWith("fallout")) {
-				CELLS.put(cell(s.dimension, s.x, s.z), s.name);
-				if (s.lifetimeTicks == 0 && s.longHalfLifeTicks == 0) {
-					// fallout from before 1.9.0: from now on it fades away too
-					lasting(s);
-					RadiationTracker.sources().markDirty();
+				// fallout up to 1.9 was one source per 48-block cell; since 1.10 it lies in the ground patch by patch
+				ServerLevel level = level(server, s.dimension);
+				if (level == null) continue;
+				float rads = s.radsAt(now);
+				if (rads > 0) {
+					long age = Math.max(0, now - s.startTime);
+					double lasting = s.longHalfLifeTicks > 0 ? Math.pow(0.5, age / (double) s.longHalfLifeTicks) : 1;
+					double decayed = s.halfLifeTicks > 0 ? Math.pow(0.5, age / (double) s.halfLifeTicks) : 1;
+					double longPart = s.longLivedFraction * lasting, all = longPart + (1 - s.longLivedFraction) * decayed;
+					Contamination.depositFallout(level, s.x, s.z, rads, s.radius, all > 0 ? (float) (longPart / all) : LONG_LIVED);
 				}
+				it.remove();
+				RadiationTracker.sources().markDirty();
+				converted++;
 			}
+		}
+		if (converted > 0) {
+			RadiationMod.LOGGER.info("Fallout: {} sources turned into ground contamination", converted);
+			Contamination.save();
 		}
 		SEEING.clear();
 	}
@@ -150,7 +162,6 @@ public final class Clouds {
 		save();
 		path = null;
 		state = new State();
-		CELLS.clear();
 		SEEING.clear();
 		COLUMNS.clear();
 	}
@@ -273,32 +284,10 @@ public final class Clouds {
 		return biome.getPrecipitationAt(ground, level.getSeaLevel()) != Biome.Precipitation.NONE;
 	}
 
-	/** Fallout: added to the source of its 48-block cell, or a new one there. */
+	/** Fallout: into the ground (or the water) under the cloud, fading out towards the edge of its footprint. */
 	private static void deposit(ServerLevel level, double x, double y, double z, double rads, double radius) {
 		if (rads < 0.0005) return;
-		String dim = RadiationTracker.dimensionId(level);
-		String key = cell(dim, x, z);
-		RadiationSources sources = RadiationTracker.sources();
-		String name = CELLS.get(key);
-		RadiationSources.PointSource s = name == null ? null : sources.source(name);
-		long now = level.getGameTime();
-		if (s != null) {
-			s.rads = s.radsAt(now) + (float) rads;
-			s.startTime = now;
-			lasting(s);
-			s.radius = Math.max(s.radius, (float) radius);
-			sources.markDirty();
-			return;
-		}
-		double cx = (Math.floor(x / CELL) + 0.5) * CELL, cz = (Math.floor(z / CELL) + 0.5) * CELL;
-		name = dev.radiation.api.RadiationApi.addSource(level, "fallout", new Vec3(cx, y, cz), (float) rads, (float) Math.max(radius, CELL),
-				dev.radiation.api.RadiationApi.Falloff.LINEAR, true, IODINE_HALF_LIFE, LONG_LIVED);
-		CELLS.put(key, name);
-		RadiationSources.PointSource added = sources.source(name);
-		if (added != null) {
-			lasting(added);
-			sources.markDirty();
-		}
+		Contamination.depositFallout(level, x, z, rads, Math.max(radius, CELL), LONG_LIVED);
 	}
 
 	/**
@@ -339,10 +328,6 @@ public final class Clouds {
 		dev.radiation.config.RadiationConfig.Clouds cfg = dev.radiation.config.RadiationConfig.get().clouds;
 		s.longHalfLifeTicks = Math.round(cfg.falloutLongHalfLifeDays * 24000.0);
 		s.lifetimeTicks = Math.round(cfg.falloutLifetimeDays * 24000.0);
-	}
-
-	private static String cell(String dim, double x, double z) {
-		return dim + " " + (int) Math.floor(x / CELL) + " " + (int) Math.floor(z / CELL);
 	}
 
 	private static void particles(ServerLevel level, Cloud c, double radius) {

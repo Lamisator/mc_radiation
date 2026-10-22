@@ -55,6 +55,8 @@ public final class RadiationEcology {
 	private static long sweepAt = Long.MIN_VALUE;
 	private static long animalsAt = Long.MIN_VALUE;
 	private static long indexedVersion = Long.MIN_VALUE;
+	private static long indexedContamination = Long.MIN_VALUE;
+	private static int mixRuns;
 	private static long indexedAt = Long.MIN_VALUE;
 	private static long ratesSince;
 	private static int runs;
@@ -122,7 +124,8 @@ public final class RadiationEcology {
 		RadiationSources sources = RadiationTracker.sources();
 		long sinceSweep = sweepAt == Long.MIN_VALUE || now < sweepAt ? Long.MAX_VALUE : now - sweepAt;
 		sweepAt = now;
-		if (sources.version() != indexedVersion || now - indexedAt >= REINDEX_TICKS || now < indexedAt) {
+		Contamination.upkeep(server, now, ++mixRuns % 20 == 0);
+		if (sources.version() != indexedVersion || Contamination.version() != indexedContamination || now - indexedAt >= REINDEX_TICKS || now < indexedAt) {
 			index(server, sources, config, now);
 		}
 		if (now - ratesSince >= CELL_TTL_TICKS || now < ratesSince) {
@@ -393,7 +396,9 @@ public final class RadiationEcology {
 				markRound(b.dimension, b.x + 0.5, b.z + 0.5, Math.min(config.barrelRadius, MAX_REACH));
 			}
 		}
+		Contamination.markHot(now, low, (dimension, box) -> mark(dimension, (int) box[0], (int) box[1], (int) box[2], (int) box[3]));
 		indexedVersion = sources.version();
+		indexedContamination = Contamination.version();
 		indexedAt = now;
 	}
 
