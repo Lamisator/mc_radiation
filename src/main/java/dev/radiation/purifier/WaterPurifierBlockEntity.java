@@ -42,6 +42,8 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 
 	private NonNullList<ItemStack> items = NonNullList.withSize(SLOTS, ItemStack.EMPTY);
 	private int tank;
+	/** How much of the tank was pumped from a water block (free water: it makes room for water poured in). */
+	private int pumped;
 	private float progress;
 	private float pump;
 	/** Share of the demand the grid delivered at the last solve, and when that was. */
@@ -157,6 +159,7 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 		while (this.pump >= 1 && this.tank < cfg.tankServings) {
 			this.pump -= 1;
 			this.tank++;
+			this.pumped++;
 			changed = true;
 		}
 		if (this.tank >= cfg.tankServings) {
@@ -179,6 +182,7 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 			if (this.progress >= 1) {
 				this.progress = 0;
 				this.tank--;
+				this.pumped = Math.min(this.pumped, this.tank);
 				this.deliver(target);
 				changed = true;
 			}
@@ -198,6 +202,12 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 	private boolean takeInput(RadiationConfig.Purifier cfg) {
 		ItemStack in = this.items.get(INPUT);
 		if (in.isEmpty()) return false;
+		if (this.tank >= cfg.tankServings && this.pumped > 0 && rawWater(in) && (!in.is(PurifierBlocks.DIRTY_WATER) && !in.is(PurifierBlocks.PURIFIED_WATER)
+				|| this.makeRoomForPlastic())) {
+			// water poured in comes first: a pumped serving goes back where it came from
+			this.tank--;
+			this.pumped--;
+		}
 		if (this.tank < cfg.tankServings) {
 			if (in.is(Items.POTION) && WaterSources.isWater(in)) {
 				this.removedRads += FoodContamination.of(in);
@@ -353,6 +363,7 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 		this.items = NonNullList.withSize(SLOTS, ItemStack.EMPTY);
 		ContainerHelper.loadAllItems(input, this.items);
 		this.tank = input.getIntOr("tank", 0);
+		this.pumped = Math.min(this.tank, input.getIntOr("pumped", 0));
 		this.progress = input.getFloatOr("progress", 0);
 		this.removedRads = input.getFloatOr("removed_rads", 0);
 	}
@@ -362,6 +373,7 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 		super.saveAdditional(output);
 		ContainerHelper.saveAllItems(output, this.items, true);
 		output.putInt("tank", this.tank);
+		output.putInt("pumped", this.pumped);
 		output.putFloat("progress", this.progress);
 		output.putFloat("removed_rads", this.removedRads);
 	}

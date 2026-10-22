@@ -44,8 +44,12 @@ public final class PurifierBlocks {
 	/** An empty plastic bottle; filled at water it gives Dirty Water, in the purifier Purified Water. */
 	public static final Item PLASTIC_BOTTLE = item("plastic_bottle", key -> new dev.radiation.thirst.PlasticBottleItem(new Item.Properties().setId(key)
 			.stacksTo(16).component(DataComponents.LORE, lore("item.radiation.plastic_bottle.desc"))));
-	public static final Item DIRTY_WATER = item("dirty_water", key -> new Item(water(key).component(DataComponents.LORE, lore("item.radiation.dirty_water.desc"))));
-	public static final Item PURIFIED_WATER = item("purified_water", key -> new Item(water(key).component(DataComponents.LORE, lore("item.radiation.purified_water.desc"))));
+	/** Water from a lake or river ("Water", or "Dirty Water" when it carries radiation; the id stays dirty_water from 1.12). */
+	public static final Item DIRTY_WATER = item("dirty_water", key -> new dev.radiation.thirst.BottledWaterItem(water(key)
+			.component(DataComponents.LORE, lore("item.radiation.dirty_water.desc")), false));
+	/** Water from the purifier ("Purified Water", or "Dirty Water" once it has taken up radiation). */
+	public static final Item PURIFIED_WATER = item("purified_water", key -> new dev.radiation.thirst.BottledWaterItem(water(key)
+			.component(DataComponents.LORE, lore("item.radiation.purified_water.desc")), true));
 
 	/** A plastic bottle of water: drunk like a potion (one serving), the empty bottle stays. */
 	private static Item.Properties water(ResourceKey<Item> key) {

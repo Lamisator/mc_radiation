@@ -170,9 +170,29 @@ public class ThirstTour implements FabricClientGameTest {
 			this.check(after[0] >= before[0] + 5.5f && after[1] > before[1] + 5 && plastic == 3, String.format(Locale.ROOT,
 					"drank the dirty water (slot %d): thirst %.1f -> %.1f, rads %.2f -> %.2f, empty plastic bottles %d", dirtySlot, before[0], after[0], before[1], after[1], plastic));
 
+			// 4c. clean water far from the fallout: unfiltered, but not irradiated - plain "Water", not "Dirty Water"
+			this.server(sp, p -> {
+				for (int x = 199; x <= 201; x++) {
+					for (int z = 1; z <= 3; z++) p.level().setBlock(new BlockPos(x, this.g, z), Blocks.WATER.defaultBlockState(), Block.UPDATE_ALL);
+				}
+				p.teleportTo(200.5, this.g + 1, 0.3);
+				p.getInventory().setItem(4, new ItemStack(PurifierBlocks.PLASTIC_BOTTLE, 1));
+			});
+			context.waitTicks(40);
+			context.getInput().pressKey(o -> o.keyHotbarSlots[4]);
+			context.getInput().lookAt(new BlockPos(200, this.g, 2));
+			context.waitTicks(5);
+			context.getInput().pressKey(o -> o.keyUse);
+			context.waitTicks(10);
+			String clear = sp.getServer().computeOnServer(server -> {
+				ItemStack st = server.getPlayerList().getPlayers().get(0).getInventory().getItem(4);
+				return st.getHoverName().getString() + " x" + st.getCount() + " " + FoodContamination.of(st) + " rad";
+			});
+			this.check(clear.equals("Water x1 0.0 rad"), "plastic bottle filled at clean water: " + clear);
+			context.takeScreenshot("thirst_clean_water");
+
 			// 5. the purifier: the dirty canteen in, glass bottles to fill; a water block touches it
 			BlockPos purifier = new BlockPos(-2, this.g, 3);
-			RadiationConfig.get().purifier.secondsPerServing = 2f;
 			this.server(sp, p -> {
 				ServerLevel level = p.level();
 				if (level.getBlockEntity(purifier) instanceof WaterPurifierBlockEntity be) {
@@ -196,6 +216,8 @@ public class ThirstTour implements FabricClientGameTest {
 				sp.getServer().runCommand(String.format(Locale.ROOT, "item replace block %d %d %d container.0 with minecraft:coal_block 64", -3, this.g, 3));
 				context.waitTicks(100);
 			}
+			double demand = sp.getServer().computeOnServer(server -> Double.valueOf(server.overworld().getBlockEntity(purifier) instanceof WaterPurifierBlockEntity be ? be.demand() : -1));
+			this.check(demand == 300 || demand == 8, "purifier demand " + demand + " W (300 at work, 8 idle)");
 			String running = this.purifier(sp, purifier);
 			this.check(running.contains("out ") && !running.contains("out empty"), "purifier after 5 s" + (gridworks ? " on a generator" : "") + ": " + running);
 			this.openPurifier(sp, purifier);
@@ -238,7 +260,7 @@ public class ThirstTour implements FabricClientGameTest {
 					be.setItem(WaterPurifierBlockEntity.OUTPUT, ItemStack.EMPTY);
 				}
 			});
-			context.waitTicks(300);
+			context.waitTicks(160);
 			String plasticRun = this.purifier(sp, purifier);
 			this.check(plasticRun.contains("out radiation:purified_water x4 0 rad") && plasticRun.contains("in empty"), "plastic bottles in the purifier: " + plasticRun);
 			this.openPurifier(sp, purifier);
@@ -261,11 +283,11 @@ public class ThirstTour implements FabricClientGameTest {
 			String stored = sp.getServer().computeOnServer(server -> {
 				ItemStack inChest = server.overworld().getBlockEntity(chest) instanceof net.minecraft.world.Container c ? c.getItem(0) : ItemStack.EMPTY;
 				ItemStack carried = server.getPlayerList().getPlayers().get(0).getInventory().getItem(8);
-				return String.format(Locale.ROOT, "in the chest %s (%.3f rad/s there), carried %s", describe(inChest),
-						RadiationTracker.contaminationAt(server.overworld(), Vec3.atCenterOf(chest)), describe(carried));
+				return String.format(Locale.ROOT, "in the chest %s named %s (%.3f rad/s there), carried %s named %s", describe(inChest), inChest.getHoverName().getString(),
+						RadiationTracker.contaminationAt(server.overworld(), Vec3.atCenterOf(chest)), describe(carried), carried.getHoverName().getString());
 			});
 			RadiationConfig.get().food.storageUptake = uptake;
-			this.check(!stored.contains("in the chest radiation:purified_water x2 0 rad") && stored.contains("carried radiation:purified_water x2 0 rad"),
+			this.check(!stored.contains("in the chest radiation:purified_water x2 0 rad") && stored.contains("carried radiation:purified_water x2 0 rad named Purified Water") && stored.contains("named Dirty Water ("),
 					"purified water after 20 s: " + stored);
 
 			// 6. dehydration: at 0 the player takes damage (normal: down to half a heart)

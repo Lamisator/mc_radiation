@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.12.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.13.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -47,7 +47,7 @@ Rads don't wear off on their own (as in Fallout). You need RadAway, or you have 
 | **Geiger Counter** | Right-click for a detailed reading: ambient radiation, what you absorb, protection, condition. Holding it shows the meter. **Sneak + right-click on the ground or on water** reads that patch's contamination alone (since 1.10.1). | Copper ingot (top right), iron / glass pane / iron, yellow dye / redstone / yellow dye |
 | **Decontamination Sprayer** | Right-click water to fill it, hold right-click on contaminated ground to wash it off (since 1.10.0, see [Contaminated ground and water](#contaminated-ground-and-water)) | Tripwire hook (top right), iron / piston / iron, yellow dye / bucket / yellow dye |
 | **Canteen** | Five servings of water: right-click water to fill it, hold right-click to drink one (since 1.11.0, see [Thirst](#thirst-and-drinking-water)) | Iron nugget (top middle), leather / leather at the sides, three iron ingots at the bottom |
-| **Plastic Bottle**, **Dirty Water**, **Purified Water** | A plastic bottle filled at water holds Dirty Water; the water purifier fills it with Purified Water. Both are drunk like a potion (one serving) and the empty bottle stays (since 1.12.0) | Slime ball (top middle), dried kelp at the sides and along the bottom → 4 |
+| **Plastic Bottle**, **Water**, **Dirty Water**, **Purified Water** | A plastic bottle filled at water holds Water (Dirty Water if the water is irradiated); the water purifier fills it with Purified Water. Both are drunk like a potion (one serving) and the empty bottle stays (since 1.12.0) | Slime ball (top middle), dried kelp at the sides and along the bottom → 4 |
 | **Water Purifier** | A 230 V machine that turns raw water into clean water (since 1.11.0, see [Thirst](#thirst-and-drinking-water)) | Iron / bucket / iron, glass / charcoal / glass, copper ingot / redstone / copper ingot |
 | **RadAway** | Removes 150 rads over 10 seconds | Shapeless: glass bottle + dried kelp + glow berries + sugar |
 | **Rad-X** | Blocks 50% of incoming radiation for 4 minutes | Shapeless: paper + amethyst shard + sugar + orange dye → 2 |
@@ -271,7 +271,7 @@ is full again after respawning. `thirst.enabled` false switches it all off.
 |-------|--------|
 | A sip from a water block: **right-click water with an empty hand** (twice a second while held) | 2 |
 | A **water bottle** (glass bottle filled at water, as in vanilla) - and any other potion, milk | 6 (one serving) |
-| **Dirty Water** or **Purified Water** in a plastic bottle | 6 (one serving) |
+| **Water**, **Dirty Water** or **Purified Water** in a plastic bottle | 6 (one serving) |
 | One serving from a **canteen** (holds five) | 6 |
 | Honey, soups and stews | 3 |
 
@@ -282,11 +282,18 @@ it up when you drink ("Contaminated water: +9.7 rad"). A sip straight from the w
 In a test, a pond with 0.96 rad/s of fallout gave 9.7 rad per bottle; four sips from it took a thirsty player from 5 to
 13 points and gave 13 rad. Topping up a canteen mixes the old water with the new.
 
-### Plastic bottles: Dirty Water and Purified Water
+### Plastic bottles: Water, Dirty Water and Purified Water
 
-Since 1.12.0. **Right-click water with an empty Plastic Bottle**: whatever the lake or river, what you get is **Dirty
-Water** - it carries the radiation of where it was taken, like a glass bottle. Only the water purifier makes **Purified
-Water**. Both stack to 16, are drunk like a potion (one serving, 3 droplets) and give the empty bottle back. Recipe: a
+Since 1.12.0. **Right-click water with an empty Plastic Bottle**. The name says what is in it (since 1.13.0):
+
+- **Water** (white cap, clear): from a lake or river where there is no radiation - unfiltered, but harmless.
+- **Dirty Water** (grey cap, murky brown): any water that carries radiation - taken where there is radiation, or water
+  of any kind that took it up in a store. It gives its rads when you drink it.
+- **Purified Water** (blue cap, label): only the water purifier makes it. Stored where radiation reaches, it too becomes
+  Dirty Water.
+
+All of them stack to 16 (bottles with different contamination do not stack), are drunk like a potion (one serving,
+3 droplets) and give the empty bottle back. Recipe: a
 slime ball and five dried kelp in the shape of a bottle make 4.
 
 **Stored water takes up radiation like food does** - in bottles and canteens too. Water kept in a chest, barrel or any
@@ -317,14 +324,16 @@ Turns raw water into clean water. The radiation stays in its filters (which neve
 
 - **Raw water** goes into its tank (8 servings, `purifier.tankServings`): put water bottles or canteens into the left
   slot - one serving at a time is poured in, and the empty bottle or canteen moves on to the containers slot to be filled
-  with clean water - or let it **pump from a water block** touching its sides or bottom (a serving every 3 seconds,
-  `purifier.pumpSecondsPerServing`). "Pumping" on the panel says it does.
+  with clean water - or let it **pump from a water block** touching its sides or bottom (about three servings a second,
+  `purifier.pumpSecondsPerServing`). "Pumping" on the panel says it does. Water poured in comes first: when the tank is
+  full of pumped water, a pumped serving goes back to make room.
 - **Empty bottles and canteens** go into the top right slot. Each purified serving fills a bottle, which comes out in the
   bottom right slot, or a canteen, which is filled where it is and moves to the output when full. Plastic bottles come out
   as **Purified Water**, stacked up to 16; Dirty Water in the input slot is poured into the tank one bottle at a time, and
   the emptied plastic bottles join the containers slot (since 1.12.0).
-- It needs **3 kW from a Gridworks 230 V grid** while it works (`purifier.watts`; 8 W standby), and a serving takes
-  15 seconds at full power (12.5 Wh a bottle, `purifier.secondsPerServing`); with less power it is slower. A power
+- It needs **300 W from a Gridworks 230 V grid** while it works (`purifier.watts`; 8 W standby), and a serving takes
+  1.5 seconds at full power (0.125 Wh a bottle, `purifier.secondsPerServing`); with less power it is slower. (Until
+  1.12 it was ten times as slow on 3 kW; config files with those old defaults are upgraded.) A power
   cable, a generator or any other 230 V machine next to it connects it. Without [Gridworks](https://github.com/Lamisator/mc_gridworks)
   installed (or with `purifier.requireGridPower` false) it runs without power. The panel shows the power it draws and an
   LED: green with full power, amber with less, red without.
@@ -481,8 +490,8 @@ on load; 1.8.0 empties `food.notContaminating` if it still holds the old default
 | `thirst.sprintThreshold`, `thirst.damage`, `thirst.damageIntervalSeconds` | 6, 1, 4 | No sprinting at or below this; damage when dehydrated, and how often |
 | `thirst.servingPoints`, `thirst.canteenServings`, `thirst.sipPoints` | 6, 5, 2 | Points per bottle or canteen serving, servings per canteen, points per sip from a water block |
 | `thirst.waterUptake`, `thirst.maxRadsPerServing` | 10, 50 | Rad per serving for each rad/s where the water was taken, and the most a serving carries |
-| `purifier.watts`, `purifier.standbyWatts` | 3000, 8 | The purifier's power at work and idle (230 V, Gridworks) |
-| `purifier.secondsPerServing`, `purifier.pumpSecondsPerServing`, `purifier.tankServings` | 15, 3, 8 | Seconds per serving at full power, seconds to pump one from a water block, tank size |
+| `purifier.watts`, `purifier.standbyWatts` | 300, 8 | The purifier's power at work and idle (230 V, Gridworks) |
+| `purifier.secondsPerServing`, `purifier.pumpSecondsPerServing`, `purifier.tankServings` | 1.5, 0.3, 8 | Seconds per serving at full power, seconds to pump one from a water block, tank size |
 | `purifier.requireGridPower` | true | With Gridworks installed, whether the purifier needs grid power |
 | `ecology.tickBudgetMillis` | 5 | Server time per tick for the land, animals and stored food (since 1.9.4); a sweep that needs more goes on in the next ticks |
 

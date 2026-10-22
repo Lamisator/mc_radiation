@@ -1,4 +1,4 @@
-"""Plastic bottle textures: empty, Dirty Water, Purified Water (Pillow). Run from the repo root."""
+"""Plastic bottle textures: empty, Water (unfiltered, clean), Dirty Water (irradiated), Purified Water (Pillow). Run from the repo root."""
 from PIL import Image
 
 A = 'src/main/resources/assets/radiation/textures/item/'
@@ -29,10 +29,12 @@ def bottle(kind):
     water_top = 99 if kind == 'empty' else 6  # rows filled with water from here down
     if kind == 'dirty':
         w, wd, wl = (122, 116, 70, 235), (92, 86, 50, 240), (150, 144, 96, 235)
+    elif kind == 'water':
+        w, wd, wl = (108, 176, 196, 215), (78, 146, 172, 225), (170, 222, 232, 215)
     else:
         w, wd, wl = (96, 170, 236, 225), (60, 130, 210, 235), (170, 220, 255, 225)
     plastic, plastic_d, plastic_l = (214, 230, 240, 120), (170, 190, 205, 160), (245, 252, 255, 170)
-    cap = (40, 110, 210, 255) if kind != 'dirty' else (60, 60, 64, 255)
+    cap = {'dirty': (60, 60, 64, 255), 'water': (205, 208, 212, 255)}.get(kind, (40, 110, 210, 255))
     for y, row in enumerate(SHAPE):
         xs = [x for x, c in enumerate(row) if c != '.']
         for x in xs:
@@ -42,6 +44,8 @@ def bottle(kind):
                 px[x, y] = cap if y else tuple(min(255, v + 40) for v in cap[:3]) + (255,)
             elif c in 'NS':
                 px[x, y] = plastic_d if edge_l or edge_r else plastic
+            elif c == 'L' and kind == 'water':  # no label: plain plastic over the water
+                px[x, y] = wl if edge_l else wd if edge_r else w
             elif c == 'L':  # label
                 if kind == 'purified':
                     px[x, y] = (250, 250, 250, 255) if y == 9 else (40, 120, 210, 255)
@@ -68,8 +72,8 @@ def bottle(kind):
     if kind == 'dirty':
         for x, y in [(6, 13), (8, 12), (5, 14), (9, 14)]:
             px[x, y] = (70, 60, 36, 255)  # sediment
-    im.save(A + {'empty': 'plastic_bottle', 'dirty': 'dirty_water', 'purified': 'purified_water'}[kind] + '.png')
+    im.save(A + {'empty': 'plastic_bottle', 'water': 'water', 'dirty': 'dirty_water', 'purified': 'purified_water'}[kind] + '.png')
 
 
-for k in ('empty', 'dirty', 'purified'):
+for k in ('empty', 'water', 'dirty', 'purified'):
     bottle(k)

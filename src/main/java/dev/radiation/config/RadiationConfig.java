@@ -32,7 +32,7 @@ public class RadiationConfig {
 
 	/** Format of this file; older files (without it: 0) are upgraded on load (see {@link #migrate}). */
 	public int configVersion = 0;
-	static final int CURRENT_VERSION = 4;
+	static final int CURRENT_VERSION = 5;
 
 	// --- core ---
 	/** Accumulated rads at which the player dies. */
@@ -326,17 +326,17 @@ public class RadiationConfig {
 
 	/**
 	 * The water purifier: takes water from bottles and canteens or pumps it from a water block next to it, and fills bottles
-	 * and canteens with clean water. On a Gridworks 230 V grid it needs a lot of power.
+	 * and canteens with clean water. On a Gridworks 230 V grid it needs 300 W while it works.
 	 */
 	public static class Purifier {
 		/** Power while purifying, in watts (230 V). */
-		public double watts = 3000;
+		public double watts = 300;
 		/** Power when idle, in watts. */
 		public double standbyWatts = 8;
-		/** Seconds per serving at full power (less power, slower). 3 kW for 15 s: 12.5 Wh a bottle. */
-		public float secondsPerServing = 15f;
+		/** Seconds per serving at full power (less power, slower). 300 W for 1.5 s: 0.125 Wh a bottle. */
+		public float secondsPerServing = 1.5f;
 		/** Seconds to pump one serving from a water block touching it. */
-		public float pumpSecondsPerServing = 3f;
+		public float pumpSecondsPerServing = 0.3f;
 		/** Raw water it holds, in servings. */
 		public int tankServings = 8;
 		/** With Gridworks installed: whether it needs grid power (without Gridworks it always runs). */
@@ -513,6 +513,14 @@ public class RadiationConfig {
 			if (clouds.maxAgeMinutes == 120) clouds.maxAgeMinutes = 40;
 			RadiationMod.LOGGER.info("Upgraded config/radiation.json to version 4 (clouds.maxAgeMinutes {}, maxTravelBlocks {})", clouds.maxAgeMinutes,
 					clouds.maxTravelBlocks);
+		}
+		if (configVersion < 5) {
+			// 1.13.0: the water purifier works ten times as fast on a tenth of the power
+			if (purifier.watts == 3000) purifier.watts = 300;
+			if (purifier.secondsPerServing == 15f) purifier.secondsPerServing = 1.5f;
+			if (purifier.pumpSecondsPerServing == 3f) purifier.pumpSecondsPerServing = 0.3f;
+			RadiationMod.LOGGER.info("Upgraded config/radiation.json to version 5 (purifier {} W, {} s a serving, pump {} s)", purifier.watts,
+					purifier.secondsPerServing, purifier.pumpSecondsPerServing);
 		}
 		configVersion = CURRENT_VERSION;
 	}

@@ -1,6 +1,15 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "radiation:item/dirty_water"
+    "type": "minecraft:condition",
+    "property": "minecraft:has_component",
+    "component": "radiation:contamination",
+    "on_true": {
+      "type": "minecraft:model",
+      "model": "radiation:item/dirty_water"
+    },
+    "on_false": {
+      "type": "minecraft:model",
+      "model": "radiation:item/water"
+    }
   }
 }
