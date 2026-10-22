@@ -5,6 +5,7 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"BlockStateRandomTickMixin",
+		"PlayerThirstMixin",
 		"RecipeContaminationMixin$Shaped",
 		"RecipeContaminationMixin$Shapeless",
 		"RecipeContaminationMixin$Single"

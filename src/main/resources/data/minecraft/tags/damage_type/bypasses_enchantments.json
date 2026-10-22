@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "radiation:radiation"
+    "radiation:radiation",
+    "radiation:dehydration"
   ]
 }

@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/orientable_with_bottom",
+  "textures": {
+    "front": "radiation:block/water_purifier_front_on",
+    "side": "radiation:block/water_purifier_side",
+    "top": "radiation:block/water_purifier_top",
+    "bottom": "radiation:block/water_purifier_bottom"
+  }
+}

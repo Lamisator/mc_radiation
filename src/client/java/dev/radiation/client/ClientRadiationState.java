@@ -28,6 +28,8 @@ public final class ClientRadiationState {
 	public static void onSettings(RadiationSettingsPayload payload) {
 		maxRads = payload.maxRads();
 		stages = List.copyOf(payload.stages());
+		dev.radiation.thirst.Thirst.clientEnabled = payload.thirst();
+		dev.radiation.thirst.Thirst.clientSprintThreshold = payload.sprintThreshold();
 	}
 
 	public static void onStatus(RadiationStatusPayload payload) {
@@ -49,6 +51,7 @@ public final class ClientRadiationState {
 		stages = List.of();
 		rads = exposure = netRate = protection = 0;
 		received = false;
+		dev.radiation.thirst.Thirst.clientEnabled = true;
 		lastActivityMillis = Long.MIN_VALUE / 2;
 	}
 

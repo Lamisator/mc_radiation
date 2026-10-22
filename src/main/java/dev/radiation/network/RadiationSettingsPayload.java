@@ -9,8 +9,8 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The parts of the server config the HUD needs: the meter's scale and the sickness stages. */
-public record RadiationSettingsPayload(float maxRads, List<StageInfo> stages) implements CustomPacketPayload {
+/** The parts of the server config the HUD needs: the meter's scale, the sickness stages, and whether there is thirst. */
+public record RadiationSettingsPayload(float maxRads, List<StageInfo> stages, boolean thirst, float sprintThreshold) implements CustomPacketPayload {
 	public static final Type<RadiationSettingsPayload> TYPE = new Type<>(RadiationMod.id("settings"));
 	public static final StreamCodec<FriendlyByteBuf, RadiationSettingsPayload> CODEC = CustomPacketPayload.codec(
 			(payload, buf) -> {
@@ -21,6 +21,8 @@ public record RadiationSettingsPayload(float maxRads, List<StageInfo> stages) im
 					buf.writeUtf(stage.name, 256);
 					buf.writeInt(stage.color);
 				}
+				buf.writeBoolean(payload.thirst);
+				buf.writeFloat(payload.sprintThreshold);
 			},
 			buf -> {
 				float max = buf.readFloat();
@@ -29,7 +31,7 @@ public record RadiationSettingsPayload(float maxRads, List<StageInfo> stages) im
 				for (int i = 0; i < count; i++) {
 					stages.add(new StageInfo(buf.readFloat(), buf.readUtf(256), buf.readInt()));
 				}
-				return new RadiationSettingsPayload(max, stages);
+				return new RadiationSettingsPayload(max, stages, buf.readBoolean(), buf.readFloat());
 			});
 
 	public record StageInfo(float threshold, String name, int color) {
@@ -40,7 +42,7 @@ public record RadiationSettingsPayload(float maxRads, List<StageInfo> stages) im
 		for (RadiationConfig.Stage stage : config.stages) {
 			stages.add(new StageInfo(stage.threshold, stage.name, stage.argb()));
 		}
-		return new RadiationSettingsPayload(config.maxRads, stages);
+		return new RadiationSettingsPayload(config.maxRads, stages, config.thirst.enabled, config.thirst.sprintThreshold);
 	}
 
 	@Override

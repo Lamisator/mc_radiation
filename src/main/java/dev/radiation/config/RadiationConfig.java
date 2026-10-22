@@ -76,6 +76,10 @@ public class RadiationConfig {
 	// --- contaminated ground and water, decontamination ---
 	public Contamination contamination = new Contamination();
 
+	// --- thirst, drinking water, the water purifier ---
+	public Thirst thirst = new Thirst();
+	public Purifier purifier = new Purifier();
+
 	// --- protection ---
 	/** Fraction of incoming radiation blocked by each worn item. Combined additively, capped by maxProtection. */
 	public Map<String, Float> protectiveItems = defaultProtectiveItems();
@@ -273,6 +277,80 @@ public class RadiationConfig {
 		}
 	}
 
+	/**
+	 * Thirst: a bar of 20 points (ten droplets) next to the hunger bar. It goes down over time and faster with everything
+	 * that makes you hungry (running, jumping, swimming, fighting), and faster still in hot places. Water from a water
+	 * block, a bottle or a canteen fills it up again - and takes the radiation of the water it came from with it.
+	 */
+	public static class Thirst {
+		public boolean enabled = true;
+		/** Seconds per point lost doing nothing (90: a full bar lasts 30 minutes standing around). */
+		public float idleSecondsPerPoint = 90f;
+		/** Hunger exhaustion per point of thirst (vanilla: 4 exhaustion per point of hunger); 0 = activity does not matter. */
+		public float exhaustionPerPoint = 6f;
+		/** Thirst goes this much faster in hot biomes (desert, savanna, badlands, the Nether). */
+		public float hotBiomeFactor = 1.5f;
+		/** At or below this many points you can no longer sprint (like hunger at 6). */
+		public float sprintThreshold = 6f;
+		/** At 0 points: this much damage (half hearts) every {@code damageIntervalSeconds}. Easy stops at 5 hearts, normal at half a heart, hard kills. */
+		public float damage = 1f;
+		public float damageIntervalSeconds = 4f;
+		/** Points one serving gives: a water bottle, one of the canteen's servings. */
+		public float servingPoints = 6f;
+		/** Servings in a full canteen. */
+		public int canteenServings = 5;
+		/** Points per sip straight from a water block (right-click water with an empty hand). */
+		public float sipPoints = 2f;
+		/**
+		 * Rad per serving for each rad/s of radiation where the water was taken (like food.cropUptake for crops): a bottle
+		 * from a pond at 0.5 rad/s carries 5 rad. A sip from a water block counts by its points.
+		 */
+		public float waterUptake = 10f;
+		/** The most one serving can carry, in rad. */
+		public float maxRadsPerServing = 50f;
+
+		void sanitize() {
+			idleSecondsPerPoint = Math.max(1, idleSecondsPerPoint);
+			exhaustionPerPoint = Math.max(0, exhaustionPerPoint);
+			hotBiomeFactor = Math.max(0, hotBiomeFactor);
+			sprintThreshold = Math.clamp(sprintThreshold, 0f, 20f);
+			damage = Math.max(0, damage);
+			damageIntervalSeconds = Math.max(0.5f, damageIntervalSeconds);
+			servingPoints = Math.clamp(servingPoints, 0.5f, 20f);
+			canteenServings = Math.clamp(canteenServings, 1, 64);
+			sipPoints = Math.clamp(sipPoints, 0.5f, 20f);
+			waterUptake = Math.max(0, waterUptake);
+			maxRadsPerServing = Math.max(0, maxRadsPerServing);
+		}
+	}
+
+	/**
+	 * The water purifier: takes water from bottles and canteens or pumps it from a water block next to it, and fills bottles
+	 * and canteens with clean water. On a Gridworks 230 V grid it needs a lot of power.
+	 */
+	public static class Purifier {
+		/** Power while purifying, in watts (230 V). */
+		public double watts = 3000;
+		/** Power when idle, in watts. */
+		public double standbyWatts = 8;
+		/** Seconds per serving at full power (less power, slower). 3 kW for 15 s: 12.5 Wh a bottle. */
+		public float secondsPerServing = 15f;
+		/** Seconds to pump one serving from a water block touching it. */
+		public float pumpSecondsPerServing = 3f;
+		/** Raw water it holds, in servings. */
+		public int tankServings = 8;
+		/** With Gridworks installed: whether it needs grid power (without Gridworks it always runs). */
+		public boolean requireGridPower = true;
+
+		void sanitize() {
+			watts = Math.max(0, watts);
+			standbyWatts = Math.max(0, standbyWatts);
+			secondsPerServing = Math.max(0.5f, secondsPerServing);
+			pumpSecondsPerServing = Math.max(0.1f, pumpSecondsPerServing);
+			tankServings = Math.clamp(tankServings, 1, 1000);
+		}
+	}
+
 	/** Radioactive clouds: how long they last and how much fallout they leave. */
 	public static class Clouds {
 		/** The longest a cloud drifts, in minutes (of play at 20 ticks per second), before it is gone. */
@@ -398,6 +476,10 @@ public class RadiationConfig {
 		clouds.sanitize();
 		if (contamination == null) contamination = new Contamination();
 		contamination.sanitize();
+		if (thirst == null) thirst = new Thirst();
+		thirst.sanitize();
+		if (purifier == null) purifier = new Purifier();
+		purifier.sanitize();
 		shieldingPerBlock = Math.clamp(shieldingPerBlock, 0f, 1f);
 		concreteShielding = Math.clamp(concreteShielding, 0f, 1f);
 		heavyShielding = Math.clamp(heavyShielding, 0f, 1f);

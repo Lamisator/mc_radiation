@@ -40,7 +40,17 @@ public class RadiationClient implements ClientModInitializer {
 			lines.add(1, net.minecraft.network.chat.Component.translatable("tooltip.radiation.contamination", dev.radiation.food.FoodContamination.format(rads))
 					.withStyle(net.minecraft.ChatFormatting.RED));
 		});
+		net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
+			if (stack.getItem() instanceof dev.radiation.thirst.CanteenItem && !lines.isEmpty()) {
+				lines.add(1, net.minecraft.network.chat.Component.translatable("tooltip.radiation.canteen",
+						dev.radiation.thirst.CanteenItem.servings(stack), dev.radiation.thirst.CanteenItem.capacity()).withStyle(net.minecraft.ChatFormatting.AQUA));
+			}
+		});
 		HudElementRegistry.addLast(RadiationMod.id("rad_meter"), new RadMeterHud());
+		ThirstHud.register();
+		ClientTickEvents.END_CLIENT_TICK.register(WaterSipClient::tick);
+		net.minecraft.client.gui.screens.MenuScreens.register(dev.radiation.purifier.PurifierBlocks.PURIFIER_MENU,
+				dev.radiation.client.purifier.WaterPurifierScreen::new);
 
 		BlockEntityRendererRegistry.register(VaultBlocks.VAULT_DOOR_ENTITY, VaultDoorRenderer::new);
 		BlockEntityRendererRegistry.register(VaultBlocks.SLIDING_DOOR_ENTITY, SlidingDoorRenderer::new);

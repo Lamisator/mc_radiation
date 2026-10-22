@@ -37,11 +37,17 @@ public class RadiationMod implements ModInitializer {
 		ModRegistry.init();
 		dev.radiation.food.FoodContamination.init();
 		VaultBlocks.init();
+		dev.radiation.purifier.PurifierBlocks.init();
+		dev.radiation.thirst.Thirst.init();
+		dev.radiation.thirst.WaterSources.init();
 
 		PayloadTypeRegistry.clientboundPlay().register(RadiationStatusPayload.TYPE, RadiationStatusPayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(RadiationSettingsPayload.TYPE, RadiationSettingsPayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(dev.radiation.network.CloudPayload.TYPE, dev.radiation.network.CloudPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(VaultDoorSettingsPayload.TYPE, VaultDoorSettingsPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(dev.radiation.network.DrinkWaterPayload.TYPE, dev.radiation.network.DrinkWaterPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(dev.radiation.network.DrinkWaterPayload.TYPE,
+				(payload, context) -> dev.radiation.thirst.Thirst.sip(context.player()));
 		ServerPlayNetworking.registerGlobalReceiver(VaultDoorSettingsPayload.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
 			if (!player.isCreative() && !player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
@@ -59,6 +65,7 @@ public class RadiationMod implements ModInitializer {
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			dev.radiation.world.Clouds.unload();
+			dev.radiation.thirst.Thirst.clear();
 			RadiationTracker.onServerStopping(server);
 		});
 		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> {
@@ -69,8 +76,12 @@ public class RadiationMod implements ModInitializer {
 		ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> RadiationTracker.clearAbsorptionCache());
 		ServerTickEvents.END_SERVER_TICK.register(RadiationTracker::tick);
 		ServerTickEvents.END_SERVER_TICK.register(dev.radiation.world.Clouds::tick);
+		ServerTickEvents.END_SERVER_TICK.register(dev.radiation.thirst.Thirst::tick);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> RadiationTracker.onPlayerJoin(handler.getPlayer()));
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> RadiationTracker.onPlayerLeave(handler.getPlayer()));
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			RadiationTracker.onPlayerLeave(handler.getPlayer());
+			dev.radiation.thirst.Thirst.forget(handler.getPlayer());
+		});
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> RadiationTracker.onPlayerRespawn(newPlayer));
 		CommandRegistrationCallback.EVENT.register((dispatcher, context, selection) -> RadiationCommands.register(dispatcher));
 

@@ -19,6 +19,7 @@
     "radiation:vault_door_part",
     "radiation:vault_alarm_light",
     "radiation:reinforced_concrete",
-    "radiation:heavy_concrete"
+    "radiation:heavy_concrete",
+    "radiation:water_purifier"
   ]
 }

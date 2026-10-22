@@ -49,6 +49,24 @@ public final class RadiationCommands {
 		return builder.buildFuture();
 	};
 
+	private static int thirst(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		var players = EntityArgument.getPlayers(ctx, "targets");
+		for (ServerPlayer p : players) {
+			ctx.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT, "%s: thirst %.1f / 20", p.getName().getString(),
+					dev.radiation.thirst.Thirst.get(p))), false);
+		}
+		return players.size();
+	}
+
+	private static int setThirst(CommandContext<CommandSourceStack> ctx, float points) throws CommandSyntaxException {
+		var players = EntityArgument.getPlayers(ctx, "targets");
+		for (ServerPlayer p : players) {
+			dev.radiation.thirst.Thirst.set(p, points);
+		}
+		ctx.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT, "Thirst set to %.1f for %d player(s)", points, players.size())), true);
+		return players.size();
+	}
+
 	private static int wind(CommandContext<CommandSourceStack> ctx) {
 		String text = dev.radiation.world.Wind.describe(ctx.getSource().getLevel());
 		ctx.getSource().sendSuccess(() -> Component.literal(Character.toUpperCase(text.charAt(0)) + text.substring(1)), false);
@@ -135,6 +153,11 @@ public final class RadiationCommands {
 				.then(literal("get")
 						.then(argument("player", EntityArgument.player())
 								.executes(RadiationCommands::get)))
+				.then(literal("thirst")
+						.then(argument("targets", EntityArgument.players())
+								.executes(RadiationCommands::thirst)
+								.then(argument("points", FloatArgumentType.floatArg(0, 20))
+										.executes(ctx -> setThirst(ctx, FloatArgumentType.getFloat(ctx, "points"))))))
 				.then(literal("set")
 						.then(argument("targets", EntityArgument.players())
 								.then(argument("amount", FloatArgumentType.floatArg(0))

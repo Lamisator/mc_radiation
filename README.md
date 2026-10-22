@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.10.2.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.11.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -46,6 +46,8 @@ Rads don't wear off on their own (as in Fallout). You need RadAway, or you have 
 |------|--------------|--------|
 | **Geiger Counter** | Right-click for a detailed reading: ambient radiation, what you absorb, protection, condition. Holding it shows the meter. **Sneak + right-click on the ground or on water** reads that patch's contamination alone (since 1.10.1). | Copper ingot (top right), iron / glass pane / iron, yellow dye / redstone / yellow dye |
 | **Decontamination Sprayer** | Right-click water to fill it, hold right-click on contaminated ground to wash it off (since 1.10.0, see [Contaminated ground and water](#contaminated-ground-and-water)) | Tripwire hook (top right), iron / piston / iron, yellow dye / bucket / yellow dye |
+| **Canteen** | Five servings of water: right-click water to fill it, hold right-click to drink one (since 1.11.0, see [Thirst](#thirst-and-drinking-water)) | Iron nugget (top middle), leather / leather at the sides, three iron ingots at the bottom |
+| **Water Purifier** | A 230 V machine that turns raw water into clean water (since 1.11.0, see [Thirst](#thirst-and-drinking-water)) | Iron / bucket / iron, glass / charcoal / glass, copper ingot / redstone / copper ingot |
 | **RadAway** | Removes 150 rads over 10 seconds | Shapeless: glass bottle + dried kelp + glow berries + sugar |
 | **Rad-X** | Blocks 50% of incoming radiation for 4 minutes | Shapeless: paper + amethyst shard + sugar + orange dye → 2 |
 | **Hazmat Hood / Suit / Trousers / Boots** | Each piece blocks 22.5% (full set 90%) | Shaped like leather armor, using leather and yellow wool (the hood has a glass pane visor) |
@@ -251,6 +253,63 @@ the radiation layer's "Contaminated ground & water" shows every patch.
 `/radiation contamination [radius]` shows the patches near you (the strongest with its position),
 `/radiation contamination add <pos> <rad/s>` contaminates a patch, `/radiation contamination clear <radius>` removes them.
 
+## Thirst and drinking water
+
+![The thirst bar above the hunger bar](docs/img/thirst_hud.png)
+
+Since 1.11.0 you need to **drink**. Ten droplets above the hunger bar show your thirst: 20 points, like hunger. It goes
+down by itself (a full bar lasts 30 minutes standing around, `thirst.idleSecondsPerPoint` 90), faster with everything
+that makes you hungry - running, jumping, swimming, fighting, healing (`thirst.exhaustionPerPoint`: 6 of vanilla's
+food exhaustion per point) - and half as fast again in hot biomes: desert, savanna, badlands, the Nether
+(`thirst.hotBiomeFactor`). At 3 droplets or fewer the bar shivers and **you can no longer sprint**; when it is empty you
+are **dehydrated** and lose half a heart every 4 seconds - on easy down to 5 hearts, on normal down to half a heart, on
+hard until you die ("died of thirst"). Creative and spectator players do not get thirsty, peaceful refills the bar, and it
+is full again after respawning. `thirst.enabled` false switches it all off.
+
+| Drink | Points |
+|-------|--------|
+| A sip from a water block: **right-click water with an empty hand** (twice a second while held) | 2 |
+| A **water bottle** (glass bottle filled at water, as in vanilla) - and any other potion, milk | 6 (one serving) |
+| One serving from a **canteen** (holds five) | 6 |
+| Honey, soups and stews | 3 |
+
+**Water can be irradiated.** Water taken where there is radiation - a contaminated lake or river, fallout, a reactor
+nearby - carries it, like contaminated food: 10 rad per serving for each rad/s there (`thirst.waterUptake`, at most 50,
+`thirst.maxRadsPerServing`). A bottle or canteen filled there shows it in red under its name ("+9.7 rad"), and you take
+it up when you drink ("Contaminated water: +9.7 rad"). A sip straight from the water carries a third of a serving's.
+In a test, a pond with 0.96 rad/s of fallout gave 9.7 rad per bottle; four sips from it took a thirsty player from 5 to
+13 points and gave 13 rad. Topping up a canteen mixes the old water with the new.
+
+### Canteen
+
+Five servings (`thirst.canteenServings`). **Right-click water** to fill it, **hold right-click** to drink a serving
+(not when you are not thirsty). The bar under it shows how full it is - blue for clean water, green for contaminated -
+and the tooltip how many servings are left. Recipe: an iron nugget (the cap), two leather (the strap) and three iron
+ingots.
+
+### Water Purifier
+
+![The water purifier's panel](docs/img/thirst_purifier.png)
+
+Turns raw water into clean water. The radiation stays in its filters (which never need changing).
+
+- **Raw water** goes into its tank (8 servings, `purifier.tankServings`): put water bottles or canteens into the left
+  slot - one serving at a time is poured in, and the empty bottle or canteen moves on to the containers slot to be filled
+  with clean water - or let it **pump from a water block** touching its sides or bottom (a serving every 3 seconds,
+  `purifier.pumpSecondsPerServing`). "Pumping" on the panel says it does.
+- **Empty bottles and canteens** go into the top right slot. Each purified serving fills a bottle, which comes out in the
+  bottom right slot, or a canteen, which is filled where it is and moves to the output when full.
+- It needs **3 kW from a Gridworks 230 V grid** while it works (`purifier.watts`; 8 W standby), and a serving takes
+  15 seconds at full power (12.5 Wh a bottle, `purifier.secondsPerServing`); with less power it is slower. A power
+  cable, a generator or any other 230 V machine next to it connects it. Without [Gridworks](https://github.com/Lamisator/mc_gridworks)
+  installed (or with `purifier.requireGridPower` false) it runs without power. The panel shows the power it draws and an
+  LED: green with full power, amber with less, red without.
+- Hoppers put raw water and empty containers in (from any side) and take clean water out. A comparator reads the tank.
+
+Recipe: iron ingots, a bucket, glass, charcoal (the filter), copper ingots and redstone.
+
+![A purifier standing in a pond, fed by a Gridworks generator](docs/img/thirst_purifier_block.png)
+
 ## Radioactive clouds, wind and rain
 
 Since 1.5.0 radioactivity can travel: a burning reactor core ([Fission](https://github.com/Lamisator/fission)), a
@@ -316,6 +375,7 @@ The rest need operator permission (or cheats enabled in singleplayer):
 | `/radiation get <player>` | Show a player's rads |
 | `/radiation set <players> <amount>` / `add <players> <amount>` | Change rads (negative `add` removes) |
 | `/radiation clear [players]` | Reset rads to 0 |
+| `/radiation thirst <players> [points]` | Show a player's thirst (0-20), or set it (since 1.11.0) |
 | `/radiation reload` | Reload the config and the sources file |
 | `/radiation cloud <pos> <rads/s> [radius] [altitude]` | Release a radioactive cloud (default 12 blocks wide, 110 up) |
 | `/radiation clouds` | The clouds on their way, and whether they are raining out |
@@ -390,6 +450,14 @@ on load; 1.8.0 empties `food.notContaminating` if it still holds the old default
 | `contamination.runoffToWater` | 0.3 | Share of what is washed off that runs into the nearest water |
 | `contamination.waterMixing` | 0.1 | Share of its excess a water patch gives each neighbour every 20 seconds |
 | `contamination.swallowedFactor` | 1.0 | Diving: the water's dose rate counts this much again |
+| `thirst.enabled` | true | Thirst and the thirst bar (since 1.11.0) |
+| `thirst.idleSecondsPerPoint`, `thirst.exhaustionPerPoint`, `thirst.hotBiomeFactor` | 90, 6, 1.5 | Seconds per point doing nothing; vanilla food exhaustion per point; how much faster in hot biomes |
+| `thirst.sprintThreshold`, `thirst.damage`, `thirst.damageIntervalSeconds` | 6, 1, 4 | No sprinting at or below this; damage when dehydrated, and how often |
+| `thirst.servingPoints`, `thirst.canteenServings`, `thirst.sipPoints` | 6, 5, 2 | Points per bottle or canteen serving, servings per canteen, points per sip from a water block |
+| `thirst.waterUptake`, `thirst.maxRadsPerServing` | 10, 50 | Rad per serving for each rad/s where the water was taken, and the most a serving carries |
+| `purifier.watts`, `purifier.standbyWatts` | 3000, 8 | The purifier's power at work and idle (230 V, Gridworks) |
+| `purifier.secondsPerServing`, `purifier.pumpSecondsPerServing`, `purifier.tankServings` | 15, 3, 8 | Seconds per serving at full power, seconds to pump one from a water block, tank size |
+| `purifier.requireGridPower` | true | With Gridworks installed, whether the purifier needs grid power |
 | `ecology.tickBudgetMillis` | 5 | Server time per tick for the land, animals and stored food (since 1.9.4); a sweep that needs more goes on in the next ticks |
 
 **`config/radiation-client.json`**: per-player display settings:
@@ -450,7 +518,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.10.2.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.11.0.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).

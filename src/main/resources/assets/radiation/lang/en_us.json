@@ -103,5 +103,16 @@
   "message.radiation.probe.lasting": "  lasting (fission products): %s rad/s (stays until washed off)",
   "message.radiation.probe.near": "Strongest patch next to it: %s rad/s",
   "message.radiation.geiger_sound.on": "Geiger clicks on, volume %s %% (/geiger volume <0-200>, /geiger off)",
-  "message.radiation.geiger_sound.off": "Geiger clicks off (volume %s %%; /geiger on to switch them back on)"
+  "message.radiation.geiger_sound.off": "Geiger clicks off (volume %s %%; /geiger on to switch them back on)",
+  "death.attack.radiation.dehydration": "%1$s died of thirst",
+  "death.attack.radiation.dehydration.player": "%1$s died of thirst while fighting %2$s",
+  "item.radiation.canteen": "Canteen",
+  "item.radiation.canteen.desc": "Five servings of water: right-click water to fill, hold right-click to drink",
+  "tooltip.radiation.canteen": "Water: %s/%s",
+  "block.radiation.water_purifier": "Water Purifier",
+  "block.radiation.water_purifier.desc": "Purifies water from bottles, canteens or a water block next to it into clean water. Needs 3 kW (230 V)",
+  "gui.radiation.purifier.pump": "Pumping",
+  "message.radiation.drank_contaminated": "Contaminated water: +%s rad",
+  "message.radiation.thirsty": "You are thirsty: too thirsty to sprint",
+  "message.radiation.dehydrated": "You are dehydrated! Drink something"
 }

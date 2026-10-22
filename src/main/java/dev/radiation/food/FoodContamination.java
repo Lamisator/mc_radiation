@@ -71,7 +71,8 @@ public final class FoodContamination {
 			float rads = Math.min(this.rads, cap(stack));
 			if (user instanceof ServerPlayer player) {
 				RadiationTracker.addRads(player, rads);
-				player.sendOverlayMessage(Component.translatable("message.radiation.ate_contaminated", format(rads)).withStyle(ChatFormatting.GOLD));
+				String key = dev.radiation.thirst.WaterSources.isWater(stack) ? "message.radiation.drank_contaminated" : "message.radiation.ate_contaminated";
+				player.sendOverlayMessage(Component.translatable(key, format(rads)).withStyle(ChatFormatting.GOLD));
 			} else {
 				Float had = user.getAttached(ModRegistry.RADS);
 				user.setAttached(ModRegistry.RADS, Math.min(RadiationConfig.get().maxRads, (had == null ? 0 : had) + rads));
@@ -156,6 +157,7 @@ public final class FoodContamination {
 	 * (8) 32, an apple (4) 16, a melon slice (2) 8.
 	 */
 	public static float cap(ItemStack stack) {
+		if (dev.radiation.thirst.WaterSources.isWater(stack)) return RadiationConfig.get().thirst.maxRadsPerServing;
 		float per = RadiationConfig.get().food.radsPerNutrition;
 		if (per <= 0) return Float.MAX_VALUE;
 		return fine(per * nutrition(stack));
@@ -211,7 +213,7 @@ public final class FoodContamination {
 	}
 
 	/** Two significant digits, for food that slowly takes up radiation in storage. */
-	static float fine(double rads) {
+	public static float fine(double rads) {
 		if (rads < 0.01) return 0;
 		double decade = Math.pow(10, Math.floor(Math.log10(rads)) - 1);
 		return (float) (Math.round(rads / decade) * decade);

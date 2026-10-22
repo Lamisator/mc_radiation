@@ -3,7 +3,7 @@
 	"id": "radiation",
 	"version": "${version}",
 	"name": "Radiation",
-	"description": "Fallout-style radiation: irradiated zones and sources, a rad meter, radiation sickness, RadAway, Rad-X, hazmat suits and a Geiger counter.",
+	"description": "Fallout-style radiation: irradiated zones and sources, a rad meter, radiation sickness, RadAway, Rad-X, hazmat suits and a Geiger counter. Thirst, contaminated water, canteens and a water purifier.",
 	"authors": [
 		"Marius Kloeck"
 	],
@@ -26,5 +26,8 @@
 		"minecraft": "~26.3",
 		"java": ">=25",
 		"fabric-api": "*"
+	},
+	"suggests": {
+		"gridworks": ">=1.5.0"
 	}
 }

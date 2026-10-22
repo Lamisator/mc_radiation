@@ -30,6 +30,12 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
+	// optional: the water purifier runs on Gridworks power (dev.radiation.purifier.GridworksCompat); not bundled
+	compileOnly files("libs/gridworks-${project.gridworks_version}.jar")
+	if (project.hasProperty("withGridworks")) {
+		localRuntime files("libs/gridworks-${project.gridworks_version}.jar")
+	}
+
 	// screenshot tour through a saved map that needs these mods: -PmapMods=/path/a.jar,/path/b.jar
 	if (project.hasProperty("mapMods")) {
 		localRuntime files(project.property("mapMods").toString().split(","))
