@@ -108,7 +108,7 @@ public final class RadiationEcology {
 	public static void tick(MinecraftServer server, RadiationConfig config) {
 		long now = server.overworld().getGameTime();
 		RadiationConfig.Ecology eco = config.ecology;
-		if (WORK.isEmpty() && (now - sweepAt >= eco.intervalTicks || now < sweepAt)) {
+		if (WORK.isEmpty() && due(sweepAt, now, eco.intervalTicks)) {
 			startSweep(server, config, now);
 		}
 		if (WORK.isEmpty()) {
@@ -125,7 +125,7 @@ public final class RadiationEcology {
 		long sinceSweep = sweepAt == Long.MIN_VALUE || now < sweepAt ? Long.MAX_VALUE : now - sweepAt;
 		sweepAt = now;
 		Contamination.upkeep(server, now, ++mixRuns % 20 == 0);
-		if (sources.version() != indexedVersion || Contamination.version() != indexedContamination || now - indexedAt >= REINDEX_TICKS || now < indexedAt) {
+		if (sources.version() != indexedVersion || Contamination.version() != indexedContamination || due(indexedAt, now, REINDEX_TICKS)) {
 			index(server, sources, config, now);
 		}
 		if (now - ratesSince >= CELL_TTL_TICKS || now < ratesSince) {
@@ -137,7 +137,7 @@ public final class RadiationEcology {
 		boolean animals = eco.animalsTakeRads && (++runs % 2 == 0);
 		float animalSeconds = elapsedSeconds(animalsAt, now, eco.intervalTicks * 2);
 		if (animals) animalsAt = now;
-		boolean storage = config.food.enabled && (now - foodAt >= config.food.storageIntervalTicks || now < foodAt);
+		boolean storage = config.food.enabled && due(foodAt, now, config.food.storageIntervalTicks);
 		float foodSeconds = elapsedSeconds(foodAt, now, config.food.storageIntervalTicks);
 		if (storage) foodAt = now;
 		for (ServerLevel level : server.getAllLevels()) {
@@ -168,6 +168,14 @@ public final class RadiationEcology {
 				WORK.add(() -> foodOnGround(level, hot, foodSeconds));
 			}
 		}
+	}
+
+	/**
+	 * Whether something last done at {@code since} is due again. Never done ({@link Long#MIN_VALUE}) is due at once:
+	 * {@code now - Long.MIN_VALUE} overflows to a negative number, which kept the first sweep from ever starting (1.9.4 - 1.11.0).
+	 */
+	private static boolean due(long since, long now, int ticks) {
+		return since == Long.MIN_VALUE || now < since || now - since >= ticks;
 	}
 
 	/** Seconds since a sweep part last ran (it may have been stretched over many ticks), {@code usualTicks} the first time. */

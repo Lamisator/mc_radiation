@@ -114,5 +114,11 @@
   "gui.radiation.purifier.pump": "Pumping",
   "message.radiation.drank_contaminated": "Contaminated water: +%s rad",
   "message.radiation.thirsty": "You are thirsty: too thirsty to sprint",
-  "message.radiation.dehydrated": "You are dehydrated! Drink something"
+  "message.radiation.dehydrated": "You are dehydrated! Drink something",
+  "item.radiation.plastic_bottle": "Plastic Bottle",
+  "item.radiation.plastic_bottle.desc": "Right-click water to fill it; the water purifier fills it with purified water",
+  "item.radiation.dirty_water": "Dirty Water",
+  "item.radiation.dirty_water.desc": "Untreated water from a lake or river. Carries the radiation of where it was taken",
+  "item.radiation.purified_water": "Purified Water",
+  "item.radiation.purified_water.desc": "Potable water from a water purifier. Stored where radiation reaches, it takes it up"
 }

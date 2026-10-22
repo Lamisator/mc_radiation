@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "K": "minecraft:dried_kelp",
+    "S": "minecraft:slime_ball"
+  },
+  "pattern": [
+    " S ",
+    "K K",
+    "KKK"
+  ],
+  "result": {
+    "id": "radiation:plastic_bottle",
+    "count": 4
+  }
+}

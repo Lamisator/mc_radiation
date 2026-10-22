@@ -118,7 +118,7 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 		return (this.tank > 0 || this.pumping()) && this.target() != Target.NONE;
 	}
 
-	private enum Target { NONE, OUTPUT_CANTEEN, CANTEEN, BOTTLE }
+	private enum Target { NONE, OUTPUT_CANTEEN, CANTEEN, BOTTLE, PLASTIC }
 
 	private Target target() {
 		ItemStack out = this.items.get(OUTPUT);
@@ -126,6 +126,8 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 		if (out.getItem() instanceof CanteenItem && CanteenItem.servings(out) < CanteenItem.capacity()) return Target.OUTPUT_CANTEEN;
 		if (box.getItem() instanceof CanteenItem && (CanteenItem.servings(box) < CanteenItem.capacity() || out.isEmpty())) return Target.CANTEEN;
 		if (box.is(Items.GLASS_BOTTLE) && out.isEmpty()) return Target.BOTTLE;
+		if (box.is(PurifierBlocks.PLASTIC_BOTTLE) && (out.isEmpty()
+				|| out.is(PurifierBlocks.PURIFIED_WATER) && out.getCount() < out.getMaxStackSize() && FoodContamination.of(out) <= 0)) return Target.PLASTIC;
 		return Target.NONE;
 	}
 
@@ -203,6 +205,16 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 				this.tank++;
 				return true;
 			}
+			if ((in.is(PurifierBlocks.DIRTY_WATER) || in.is(PurifierBlocks.PURIFIED_WATER)) && this.makeRoomForPlastic()) {
+				// one bottle at a time; the empty one goes to the containers slot to be filled with clean water
+				this.removedRads += FoodContamination.of(in);
+				in.shrink(1);
+				ItemStack box = this.items.get(CONTAINERS);
+				if (box.isEmpty()) this.items.set(CONTAINERS, new ItemStack(PurifierBlocks.PLASTIC_BOTTLE));
+				else box.grow(1);
+				this.tank++;
+				return true;
+			}
 			if (in.getItem() instanceof CanteenItem && CanteenItem.servings(in) > 0) {
 				float rads = CanteenItem.take(in);
 				this.removedRads += Math.max(0, rads);
@@ -211,7 +223,7 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 			}
 		}
 		// the empty bottle or canteen goes on to be filled with clean water
-		boolean empty = in.is(Items.GLASS_BOTTLE) || in.getItem() instanceof CanteenItem && CanteenItem.servings(in) == 0;
+		boolean empty = in.is(Items.GLASS_BOTTLE) || in.is(PurifierBlocks.PLASTIC_BOTTLE) || in.getItem() instanceof CanteenItem && CanteenItem.servings(in) == 0;
 		if (empty) {
 			ItemStack box = this.items.get(CONTAINERS);
 			if (box.isEmpty()) {
@@ -219,7 +231,7 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 				this.items.set(INPUT, ItemStack.EMPTY);
 				return true;
 			}
-			if (in.is(Items.GLASS_BOTTLE) && box.is(Items.GLASS_BOTTLE) && box.getCount() < box.getMaxStackSize()) {
+			if (!(in.getItem() instanceof CanteenItem) && ItemStack.isSameItemSameComponents(in, box) && box.getCount() < box.getMaxStackSize()) {
 				int move = Math.min(in.getCount(), box.getMaxStackSize() - box.getCount());
 				box.grow(move);
 				in.shrink(move);
@@ -242,9 +254,21 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 				this.items.get(CONTAINERS).shrink(1);
 				this.items.set(OUTPUT, PotionContents.createItemStack(Items.POTION, Potions.WATER));
 			}
+			case PLASTIC -> {
+				this.items.get(CONTAINERS).shrink(1);
+				ItemStack out = this.items.get(OUTPUT);
+				if (out.isEmpty()) this.items.set(OUTPUT, new ItemStack(PurifierBlocks.PURIFIED_WATER));
+				else out.grow(1);
+			}
 			case NONE -> {
 			}
 		}
+	}
+
+	/** Whether an emptied plastic bottle fits into the containers slot. */
+	private boolean makeRoomForPlastic() {
+		ItemStack box = this.items.get(CONTAINERS);
+		return box.isEmpty() || box.is(PurifierBlocks.PLASTIC_BOTTLE) && box.getCount() < box.getMaxStackSize();
 	}
 
 	public boolean working() {
@@ -266,11 +290,12 @@ public class WaterPurifierBlockEntity extends BaseContainerBlockEntity implement
 	// ------------------------------------------------------------------ container
 
 	public static boolean rawWater(ItemStack stack) {
-		return stack.is(Items.POTION) && WaterSources.isWater(stack) || stack.getItem() instanceof CanteenItem && CanteenItem.servings(stack) > 0;
+		return stack.is(Items.POTION) && WaterSources.isWater(stack) || stack.is(PurifierBlocks.DIRTY_WATER) || stack.is(PurifierBlocks.PURIFIED_WATER)
+				|| stack.getItem() instanceof CanteenItem && CanteenItem.servings(stack) > 0;
 	}
 
 	public static boolean emptyContainer(ItemStack stack) {
-		return stack.is(Items.GLASS_BOTTLE) || stack.getItem() instanceof CanteenItem && CanteenItem.servings(stack) < CanteenItem.capacity();
+		return stack.is(Items.GLASS_BOTTLE) || stack.is(PurifierBlocks.PLASTIC_BOTTLE) || stack.getItem() instanceof CanteenItem && CanteenItem.servings(stack) < CanteenItem.capacity();
 	}
 
 	@Override

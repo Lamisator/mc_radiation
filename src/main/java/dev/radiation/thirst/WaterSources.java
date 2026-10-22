@@ -100,13 +100,19 @@ public final class WaterSources {
 		});
 	}
 
-	/** A water bottle (any potion that is plain water) or a canteen: their contamination is per serving of water. */
+	/** A water bottle (any potion that is plain water), dirty or purified water or a canteen: their contamination is per serving of water. */
 	public static boolean isWater(ItemStack stack) {
 		if (stack.is(Items.POTION)) {
 			PotionContents contents = stack.get(DataComponents.POTION_CONTENTS);
 			return contents != null && contents.is(Potions.WATER);
 		}
-		return stack.getItem() instanceof CanteenItem;
+		return stack.is(dev.radiation.purifier.PurifierBlocks.DIRTY_WATER) || stack.is(dev.radiation.purifier.PurifierBlocks.PURIFIED_WATER)
+				|| stack.getItem() instanceof CanteenItem;
+	}
+
+	/** Water that is there: like food, it takes up radiation where it is stored (an empty canteen has nothing to take it up). */
+	public static boolean holdsWater(ItemStack stack) {
+		return isWater(stack) && !(stack.getItem() instanceof CanteenItem && CanteenItem.servings(stack) <= 0);
 	}
 
 	/** The water block the player looks at, within reach, or null. */

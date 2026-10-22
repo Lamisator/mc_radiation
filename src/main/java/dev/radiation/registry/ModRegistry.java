@@ -147,6 +147,9 @@ public final class ModRegistry {
 						output.accept(GEIGER_COUNTER);
 						output.accept(DECONTAMINATION_SPRAYER);
 						output.accept(dev.radiation.purifier.PurifierBlocks.CANTEEN);
+						output.accept(dev.radiation.purifier.PurifierBlocks.PLASTIC_BOTTLE);
+						output.accept(dev.radiation.purifier.PurifierBlocks.DIRTY_WATER);
+						output.accept(dev.radiation.purifier.PurifierBlocks.PURIFIED_WATER);
 						output.accept(dev.radiation.purifier.PurifierBlocks.WATER_PURIFIER_ITEM);
 						output.accept(RADAWAY_ITEM);
 						output.accept(RAD_X);

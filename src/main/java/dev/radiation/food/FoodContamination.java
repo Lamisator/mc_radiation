@@ -59,6 +59,8 @@ import java.util.Locale;
  */
 public final class FoodContamination {
 	public static final TagKey<Item> CONTAMINABLE = TagKey.create(Registries.ITEM, RadiationMod.id("contaminable"));
+	/** Containers that keep what is in them clean wherever they stand (block tag; by default the water purifier). */
+	public static final TagKey<net.minecraft.world.level.block.Block> SEALED_STORAGE = TagKey.create(Registries.BLOCK, RadiationMod.id("sealed_storage"));
 
 	/** The contamination of one item: rads taken up when it is eaten. */
 	public record Contamination(float rads) implements ConsumableListener {
@@ -136,9 +138,9 @@ public final class FoodContamination {
 
 	// ------------------------------------------------------------------ stacks
 
-	/** Food, or what food is made of. */
+	/** Food, what food is made of, or drinking water (bottles, canteens): a sealed bottle does not keep the radiation out. */
 	public static boolean contaminable(ItemStack stack) {
-		return !stack.isEmpty() && (stack.has(DataComponents.FOOD) || stack.is(CONTAMINABLE));
+		return !stack.isEmpty() && (stack.has(DataComponents.FOOD) || stack.is(CONTAMINABLE) || dev.radiation.thirst.WaterSources.holdsWater(stack));
 	}
 
 	public static float of(ItemStack stack) {
@@ -316,7 +318,7 @@ public final class FoodContamination {
 	public static void storage(ServerLevel level, LevelChunk chunk, float seconds) {
 		RadiationConfig.Food cfg = RadiationConfig.get().food;
 		for (BlockEntity be : List.copyOf(chunk.getBlockEntities().values())) {
-			if (!(be instanceof Container container) || be.isRemoved()) continue;
+			if (!(be instanceof Container container) || be.isRemoved() || be.getBlockState().is(SEALED_STORAGE)) continue;
 			float most = 0;
 			boolean any = false;
 			for (int i = 0; i < container.getContainerSize(); i++) {

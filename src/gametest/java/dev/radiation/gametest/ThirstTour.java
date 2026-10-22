@@ -127,6 +127,49 @@ public class ThirstTour implements FabricClientGameTest {
 							before[0], after[0], before[1], after[1]));
 			context.takeScreenshot("thirst_canteen");
 
+			// 4b. plastic bottles: filled at the pond they hold Dirty Water, which carries the pond's radiation; drunk, the bottle stays
+			this.server(sp, p -> {
+				p.getInventory().setItem(2, new ItemStack(PurifierBlocks.PLASTIC_BOTTLE, 3));
+				p.getInventory().setSelectedSlot(2);
+				Thirst.set(p, 8);
+			});
+			context.getInput().pressKey(o -> o.keyHotbarSlots[2]);
+			context.getInput().lookAt(new BlockPos(0, this.g, 2));
+			context.waitTicks(5);
+			context.getInput().pressKey(o -> o.keyUse);
+			context.waitTicks(10);
+			String dirty = sp.getServer().computeOnServer(server -> {
+				var inv = server.getPlayerList().getPlayers().get(0).getInventory();
+				for (int i = 0; i < inv.getContainerSize(); i++) {
+					if (inv.getItem(i).is(PurifierBlocks.DIRTY_WATER)) {
+						return inv.getItem(i).getHoverName().getString() + " x" + inv.getItem(i).getCount() + " " + FoodContamination.of(inv.getItem(i)) + " rad in slot " + i;
+					}
+				}
+				return "none";
+			});
+			this.check(dirty.startsWith("Dirty Water x1") && !dirty.contains(" 0.0 rad"), "plastic bottle filled at the pond: " + dirty);
+			context.takeScreenshot("thirst_dirty_water");
+			// drink it: the dirty water went into a free slot; select it
+			int dirtySlot = sp.getServer().computeOnServer(server -> {
+				var inv = server.getPlayerList().getPlayers().get(0).getInventory();
+				for (int i = 0; i < 9; i++) if (inv.getItem(i).is(PurifierBlocks.DIRTY_WATER)) return i;
+				return -1;
+			});
+			if (dirtySlot >= 0) {
+				context.getInput().pressKey(o -> o.keyHotbarSlots[dirtySlot]);
+			}
+			before = this.state(sp);
+			context.getInput().lookAt(new BlockPos(0, this.g + 2, -10));
+			context.waitTicks(3);
+			context.getInput().holdKey(o -> o.keyUse);
+			context.waitTicks(45);
+			context.getInput().releaseKey(o -> o.keyUse);
+			context.waitTicks(5);
+			after = this.state(sp);
+			int plastic = sp.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().get(0).getInventory().countItem(PurifierBlocks.PLASTIC_BOTTLE));
+			this.check(after[0] >= before[0] + 5.5f && after[1] > before[1] + 5 && plastic == 3, String.format(Locale.ROOT,
+					"drank the dirty water (slot %d): thirst %.1f -> %.1f, rads %.2f -> %.2f, empty plastic bottles %d", dirtySlot, before[0], after[0], before[1], after[1], plastic));
+
 			// 5. the purifier: the dirty canteen in, glass bottles to fill; a water block touches it
 			BlockPos purifier = new BlockPos(-2, this.g, 3);
 			RadiationConfig.get().purifier.secondsPerServing = 2f;
@@ -184,6 +227,46 @@ public class ThirstTour implements FabricClientGameTest {
 			context.getInput().lookAt(purifier);
 			context.waitTicks(10);
 			context.takeScreenshot("thirst_purifier_block");
+
+			// 5b. dirty water in plastic bottles in, empty plastic bottles: Purified Water out, the emptied bottles refilled
+			this.server(sp, p -> {
+				if (p.level().getBlockEntity(purifier) instanceof WaterPurifierBlockEntity be) {
+					ItemStack in = new ItemStack(PurifierBlocks.DIRTY_WATER, 2);
+					FoodContamination.set(in, 9.7f);
+					be.setItem(WaterPurifierBlockEntity.INPUT, in);
+					be.setItem(WaterPurifierBlockEntity.CONTAINERS, new ItemStack(PurifierBlocks.PLASTIC_BOTTLE, 2));
+					be.setItem(WaterPurifierBlockEntity.OUTPUT, ItemStack.EMPTY);
+				}
+			});
+			context.waitTicks(300);
+			String plasticRun = this.purifier(sp, purifier);
+			this.check(plasticRun.contains("out radiation:purified_water x4 0 rad") && plasticRun.contains("in empty"), "plastic bottles in the purifier: " + plasticRun);
+			this.openPurifier(sp, purifier);
+			context.waitTicks(10);
+			context.takeScreenshot("thirst_purifier_plastic");
+			context.runOnClient(mc -> mc.player.closeContainer());
+
+			// 5c. like food: purified water stored where the fallout is takes it up; carried, it does not
+			BlockPos chest = new BlockPos(1, this.g + 1, -1);
+			float uptake = RadiationConfig.get().food.storageUptake;
+			RadiationConfig.get().food.storageUptake = 0.05f; // ten times as fast, for the test
+			this.server(sp, p -> {
+				p.level().setBlock(chest, Blocks.CHEST.defaultBlockState(), Block.UPDATE_ALL);
+				if (p.level().getBlockEntity(chest) instanceof net.minecraft.world.Container c) {
+					c.setItem(0, new ItemStack(PurifierBlocks.PURIFIED_WATER, 2));
+				}
+				p.getInventory().setItem(8, new ItemStack(PurifierBlocks.PURIFIED_WATER, 2));
+			});
+			context.waitTicks(400);
+			String stored = sp.getServer().computeOnServer(server -> {
+				ItemStack inChest = server.overworld().getBlockEntity(chest) instanceof net.minecraft.world.Container c ? c.getItem(0) : ItemStack.EMPTY;
+				ItemStack carried = server.getPlayerList().getPlayers().get(0).getInventory().getItem(8);
+				return String.format(Locale.ROOT, "in the chest %s (%.3f rad/s there), carried %s", describe(inChest),
+						RadiationTracker.contaminationAt(server.overworld(), Vec3.atCenterOf(chest)), describe(carried));
+			});
+			RadiationConfig.get().food.storageUptake = uptake;
+			this.check(!stored.contains("in the chest radiation:purified_water x2 0 rad") && stored.contains("carried radiation:purified_water x2 0 rad"),
+					"purified water after 20 s: " + stored);
 
 			// 6. dehydration: at 0 the player takes damage (normal: down to half a heart)
 			this.server(sp, p -> {

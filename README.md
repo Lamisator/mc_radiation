@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.11.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.12.0.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -47,6 +47,7 @@ Rads don't wear off on their own (as in Fallout). You need RadAway, or you have 
 | **Geiger Counter** | Right-click for a detailed reading: ambient radiation, what you absorb, protection, condition. Holding it shows the meter. **Sneak + right-click on the ground or on water** reads that patch's contamination alone (since 1.10.1). | Copper ingot (top right), iron / glass pane / iron, yellow dye / redstone / yellow dye |
 | **Decontamination Sprayer** | Right-click water to fill it, hold right-click on contaminated ground to wash it off (since 1.10.0, see [Contaminated ground and water](#contaminated-ground-and-water)) | Tripwire hook (top right), iron / piston / iron, yellow dye / bucket / yellow dye |
 | **Canteen** | Five servings of water: right-click water to fill it, hold right-click to drink one (since 1.11.0, see [Thirst](#thirst-and-drinking-water)) | Iron nugget (top middle), leather / leather at the sides, three iron ingots at the bottom |
+| **Plastic Bottle**, **Dirty Water**, **Purified Water** | A plastic bottle filled at water holds Dirty Water; the water purifier fills it with Purified Water. Both are drunk like a potion (one serving) and the empty bottle stays (since 1.12.0) | Slime ball (top middle), dried kelp at the sides and along the bottom → 4 |
 | **Water Purifier** | A 230 V machine that turns raw water into clean water (since 1.11.0, see [Thirst](#thirst-and-drinking-water)) | Iron / bucket / iron, glass / charcoal / glass, copper ingot / redstone / copper ingot |
 | **RadAway** | Removes 150 rads over 10 seconds | Shapeless: glass bottle + dried kelp + glow berries + sugar |
 | **Rad-X** | Blocks 50% of incoming radiation for 4 minutes | Shapeless: paper + amethyst shard + sugar + orange dye → 2 |
@@ -270,6 +271,7 @@ is full again after respawning. `thirst.enabled` false switches it all off.
 |-------|--------|
 | A sip from a water block: **right-click water with an empty hand** (twice a second while held) | 2 |
 | A **water bottle** (glass bottle filled at water, as in vanilla) - and any other potion, milk | 6 (one serving) |
+| **Dirty Water** or **Purified Water** in a plastic bottle | 6 (one serving) |
 | One serving from a **canteen** (holds five) | 6 |
 | Honey, soups and stews | 3 |
 
@@ -279,6 +281,26 @@ nearby - carries it, like contaminated food: 10 rad per serving for each rad/s t
 it up when you drink ("Contaminated water: +9.7 rad"). A sip straight from the water carries a third of a serving's.
 In a test, a pond with 0.96 rad/s of fallout gave 9.7 rad per bottle; four sips from it took a thirsty player from 5 to
 13 points and gave 13 rad. Topping up a canteen mixes the old water with the new.
+
+### Plastic bottles: Dirty Water and Purified Water
+
+Since 1.12.0. **Right-click water with an empty Plastic Bottle**: whatever the lake or river, what you get is **Dirty
+Water** - it carries the radiation of where it was taken, like a glass bottle. Only the water purifier makes **Purified
+Water**. Both stack to 16, are drunk like a potion (one serving, 3 droplets) and give the empty bottle back. Recipe: a
+slime ball and five dried kelp in the shape of a bottle make 4.
+
+**Stored water takes up radiation like food does** - in bottles and canteens too. Water kept in a chest, barrel or any
+other container where radiation reaches it, or lying on the ground there, slowly takes it up
+(`food.storageUptake`, 0.005 rad per rad of exposure: an hour at 1 rad/s gives 18 rad), so even Purified Water turns
+radioactive in a store under fallout. Carried in your inventory, it takes up nothing more. Safe storage:
+
+- a store the radiation does not reach - behind concrete, underground (uptake follows the dose rate where the
+  container stands);
+- a container in the block tag **`radiation:sealed_storage`**, which keeps food and water clean wherever it stands.
+  By default that is the water purifier itself; a data pack can add other containers.
+
+In a test, two Purified Water in a chest at 0.5 rad/s carried 0.56 rad each after 20 seconds (with the uptake ten times
+the default), while the two in the player's inventory stayed clean.
 
 ### Canteen
 
@@ -298,7 +320,9 @@ Turns raw water into clean water. The radiation stays in its filters (which neve
   with clean water - or let it **pump from a water block** touching its sides or bottom (a serving every 3 seconds,
   `purifier.pumpSecondsPerServing`). "Pumping" on the panel says it does.
 - **Empty bottles and canteens** go into the top right slot. Each purified serving fills a bottle, which comes out in the
-  bottom right slot, or a canteen, which is filled where it is and moves to the output when full.
+  bottom right slot, or a canteen, which is filled where it is and moves to the output when full. Plastic bottles come out
+  as **Purified Water**, stacked up to 16; Dirty Water in the input slot is poured into the tank one bottle at a time, and
+  the emptied plastic bottles join the containers slot (since 1.12.0).
 - It needs **3 kW from a Gridworks 230 V grid** while it works (`purifier.watts`; 8 W standby), and a serving takes
   15 seconds at full power (12.5 Wh a bottle, `purifier.secondsPerServing`); with less power it is slower. A power
   cable, a generator or any other 230 V machine next to it connects it. Without [Gridworks](https://github.com/Lamisator/mc_gridworks)
@@ -307,6 +331,8 @@ Turns raw water into clean water. The radiation stays in its filters (which neve
 - Hoppers put raw water and empty containers in (from any side) and take clean water out. A comparator reads the tank.
 
 Recipe: iron ingots, a bucket, glass, charcoal (the filter), copper ingots and redstone.
+
+![Dirty water in, Purified Water out](docs/img/thirst_purifier_plastic.png)
 
 ![A purifier standing in a pond, fed by a Gridworks generator](docs/img/thirst_purifier_block.png)
 
@@ -472,6 +498,10 @@ on load; 1.8.0 empties `food.notContaminating` if it still holds the old default
 | `geigerClicksPerRad`, `geigerMaxClicksPerSecond` | 2.5, 60 | How busy the Geiger counter sounds |
 
 ## Performance
+
+**1.12.0 fixes a bug of 1.9.4 - 1.11.0:** after every server start the sweep over the land, the animals and stored food
+never started (a "never done yet" time stamp overflowed in a subtraction), so crops kept growing in fallout, animals took
+no rads, stored food took up nothing and contaminated water did not spread. It runs again.
 
 Since 1.9.4 a melted-down reactor no longer stalls the server. Before that, a blown-up 1000 MW core (about 2,300 radiating
 debris, corium and fuel blocks) made every dose rate draw a line through the blocks to each of them, and the sweep over

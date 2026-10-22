@@ -41,6 +41,24 @@ public final class PurifierBlocks {
 	public static final Item CANTEEN = item("canteen", key -> new CanteenItem(new Item.Properties().setId(key).stacksTo(1)
 			.component(CanteenItem.WATER, 0).component(DataComponents.LORE, lore("item.radiation.canteen.desc"))));
 
+	/** An empty plastic bottle; filled at water it gives Dirty Water, in the purifier Purified Water. */
+	public static final Item PLASTIC_BOTTLE = item("plastic_bottle", key -> new dev.radiation.thirst.PlasticBottleItem(new Item.Properties().setId(key)
+			.stacksTo(16).component(DataComponents.LORE, lore("item.radiation.plastic_bottle.desc"))));
+	public static final Item DIRTY_WATER = item("dirty_water", key -> new Item(water(key).component(DataComponents.LORE, lore("item.radiation.dirty_water.desc"))));
+	public static final Item PURIFIED_WATER = item("purified_water", key -> new Item(water(key).component(DataComponents.LORE, lore("item.radiation.purified_water.desc"))));
+
+	/** A plastic bottle of water: drunk like a potion (one serving), the empty bottle stays. */
+	private static Item.Properties water(ResourceKey<Item> key) {
+		return new Item.Properties().setId(key).stacksTo(16).usingConvertsTo(PLASTIC_BOTTLE)
+				.component(DataComponents.CONSUMABLE, net.minecraft.world.item.component.Consumable.builder()
+						.consumeSeconds(1.6f)
+						.animation(net.minecraft.world.item.ItemUseAnimation.DRINK)
+						.sound(net.minecraft.sounds.SoundEvents.GENERIC_DRINK)
+						.hasConsumeParticles(false)
+						.build())
+				.component(dev.radiation.thirst.WaterSources.HYDRATION, new dev.radiation.thirst.WaterSources.Hydration(1));
+	}
+
 	public static final BlockEntityType<WaterPurifierBlockEntity> PURIFIER_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
 			RadiationMod.id("water_purifier"), FabricBlockEntityTypeBuilder.create(WaterPurifierBlockEntity::new, WATER_PURIFIER).build());
 
