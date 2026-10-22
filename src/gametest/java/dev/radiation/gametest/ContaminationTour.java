@@ -46,6 +46,26 @@ public class ContaminationTour implements FabricClientGameTest {
 			context.waitTicks(40);
 			System.out.println("[contamination] before: " + sp.getServer().computeOnServer(server -> this.measure(server.overworld())));
 
+			// the Geiger counter's probe: sneak + right-click on the meadow
+			sp.getServer().runOnServer(server -> {
+				ServerPlayer p = server.getPlayerList().getPlayers().get(0);
+				p.getInventory().setItem(1, new ItemStack(ModRegistry.GEIGER_COUNTER));
+				p.teleportTo(0.5, this.g + 1, -3.5);
+			});
+			context.waitTicks(10);
+			context.getInput().pressKey(o -> o.keyHotbarSlots[1]);
+			context.waitTicks(5);
+			context.getInput().lookAt(new BlockPos(0, this.g, 0));
+			context.waitTicks(5);
+			context.getInput().holdShift();
+			context.waitTicks(3);
+			context.getInput().pressKey(o -> o.keyUse);
+			context.waitTicks(5);
+			context.getInput().releaseShift();
+			context.waitTicks(10);
+			context.takeScreenshot("contamination_probe");
+			context.getInput().pressKey(o -> o.keyHotbarSlots[0]);
+
 			// spray the meadow in front of the player for 5 seconds
 			sp.getServer().runOnServer(server -> {
 				ServerPlayer p = server.getPlayerList().getPlayers().get(0);

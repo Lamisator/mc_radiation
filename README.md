@@ -14,7 +14,7 @@ Online handbook: https://mchamradio.antwire.net/handbook/radiation/
    as the mod loader (any recent loader version, at least 0.19.5).
 2. Open the instance's **Edit → Mods** page and click **Download mods**. Search for **Fabric API** and
    install it. Radiation needs it.
-3. Click **Add file** and pick `radiation-1.10.0.jar`, or drop the jar onto the mod list.
+3. Click **Add file** and pick `radiation-1.10.1.jar`, or drop the jar onto the mod list.
 4. Start the instance.
 
 For a multiplayer server, put the same jar plus Fabric API into the server's `mods` folder. Every
@@ -44,7 +44,7 @@ Rads don't wear off on their own (as in Fallout). You need RadAway, or you have 
 
 | Item | What it does | Recipe |
 |------|--------------|--------|
-| **Geiger Counter** | Right-click for a detailed reading: ambient radiation, what you absorb, protection, condition. Holding it shows the meter. | Copper ingot (top right), iron / glass pane / iron, yellow dye / redstone / yellow dye |
+| **Geiger Counter** | Right-click for a detailed reading: ambient radiation, what you absorb, protection, condition. Holding it shows the meter. **Sneak + right-click on the ground or on water** reads that patch's contamination alone (since 1.10.1). | Copper ingot (top right), iron / glass pane / iron, yellow dye / redstone / yellow dye |
 | **Decontamination Sprayer** | Right-click water to fill it, hold right-click on contaminated ground to wash it off (since 1.10.0, see [Contaminated ground and water](#contaminated-ground-and-water)) | Tripwire hook (top right), iron / piston / iron, yellow dye / bucket / yellow dye |
 | **RadAway** | Removes 150 rads over 10 seconds | Shapeless: glass bottle + dried kelp + glow berries + sugar |
 | **Rad-X** | Blocks 50% of incoming radiation for 4 minutes | Shapeless: paper + amethyst shard + sugar + orange dye → 2 |
@@ -240,6 +240,13 @@ quarter of a second a burst washes 25 % (`contamination.sprayWashes`) off the pa
 nearest water within 16 blocks, which gets contaminated in turn (`contamination.runoffToWater`); the rest goes down the
 drain. In a test, five seconds of spraying took a meadow from 0.76 to 0.29 rad/s where it was sprayed (the rest comes
 from the patches around it). Recipe: iron ingots, a piston, a bucket, a tripwire hook (the trigger) and yellow dye.
+
+**Measuring it.** The Geiger counter's meter shows everything that reaches you, ground included. To read the ground
+itself, **sneak and right-click the ground (or water) with the Geiger counter** (since 1.10.1): it reads the 4x4 patch
+you point at - its dose rate one metre above an even patch of it, split into fallout (fades away) and lasting
+contamination (spilled fission products, stays until washed off) - and the strongest patch next to it, whatever else
+radiates around. "Clean" means nothing is in that patch. On the [Atlas](https://github.com/Lamisator/mc_atlas) web map,
+the radiation layer's "Contaminated ground & water" shows every patch.
 
 `/radiation contamination [radius]` shows the patches near you (the strongest with its position),
 `/radiation contamination add <pos> <rad/s>` contaminates a patch, `/radiation contamination clear <radius>` removes them.
@@ -441,7 +448,7 @@ Requires JDK 25.
 ./gradlew build
 ```
 
-The mod jar ends up in `build/libs/radiation-1.10.0.jar`. `./gradlew runClient` starts a development
+The mod jar ends up in `build/libs/radiation-1.10.1.jar`. `./gradlew runClient` starts a development
 client with the mod loaded. `./gradlew runClientGameTest` runs the vault screenshot tour,
 `./gradlew runClientGameTest -Pscene=ecology` the land, crop and shielding test.
 `./gradlew runClientGameTest -Pscene=food` the contaminated food test (harvest, bread, meat, furnace, storage, eating, tooltips).

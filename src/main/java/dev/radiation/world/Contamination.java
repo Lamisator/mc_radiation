@@ -337,6 +337,47 @@ public final class Contamination {
 		return most;
 	}
 
+	/** What a Geiger counter reads off one patch: fallout and lasting parts now (rad/s), water or ground, and the strongest patch next to it. */
+	public record Reading(float fallout, float lasting, boolean water, int y, float strongestNear) {
+		public float total() {
+			return fallout + lasting;
+		}
+	}
+
+	/**
+	 * The patch at {@code pos} (the air block above the ground, or a water block), split into fallout and lasting
+	 * contamination, plus the strongest patch in the eight columns around it at about that height.
+	 */
+	public static Reading read(ServerLevel level, BlockPos pos) {
+		long now = level.getGameTime();
+		String dim = RadiationTracker.dimensionId(level);
+		boolean wet = level.getFluidState(pos).is(FluidTags.WATER);
+		Map<String, Long2ObjectOpenHashMap<List<Patch>>> map = wet ? WATER : GROUND;
+		int cx = pos.getX() >> SHIFT, cz = pos.getZ() >> SHIFT;
+		float fallout = 0, lasting = 0, near = 0;
+		int y = pos.getY();
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dz = -1; dz <= 1; dz++) {
+				List<Patch> list = patches(map, dim, cx + dx, cz + dz, false);
+				if (list == null) continue;
+				for (Patch p : list) {
+					boolean match = wet ? p.y >= pos.getY() && p.y - pos.getY() <= 64 : p.y != UNKNOWN && Math.abs(p.y - pos.getY()) <= 1;
+					if (!match) continue;
+					if (dx == 0 && dz == 0) {
+						if (p.radsAt(now) > fallout + lasting) {
+							fallout = p.falloutAt(now);
+							lasting = p.lastingAt(now);
+							y = p.y;
+						}
+					} else {
+						near = Math.max(near, p.radsAt(now));
+					}
+				}
+			}
+		}
+		return new Reading(fallout, lasting, wet, y, near);
+	}
+
 	/** Fallout-like contamination in the water patch at {@code pos} (runoff). */
 	private static void intoWater(ServerLevel level, Patch water, float fallout, float share, float lasting) {
 		long now = level.getGameTime();

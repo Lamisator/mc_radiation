@@ -5,7 +5,7 @@
   "item.radiation.rad_x": "Rad-X",
   "item.radiation.rad_x.desc": "Halves incoming radiation for 4 minutes",
   "item.radiation.geiger_counter": "Geiger Counter",
-  "item.radiation.geiger_counter.desc": "Right-click for a detailed radiation reading",
+  "item.radiation.geiger_counter.desc": "Right-click for a detailed radiation reading; sneak + right-click on the ground or water to read its contamination",
   "item.radiation.hazmat_helmet": "Hazmat Hood",
   "item.radiation.hazmat_chestplate": "Hazmat Suit",
   "item.radiation.hazmat_leggings": "Hazmat Trousers",
@@ -93,5 +93,13 @@
   "item.radiation.decontamination_sprayer": "Decontamination Sprayer",
   "item.radiation.decontamination_sprayer.desc": "Right-click water to fill; hold right-click on contaminated ground to wash it off",
   "message.radiation.sprayer.empty": "The sprayer is empty: right-click water to fill it",
-  "message.radiation.sprayer.washed": "Washed off %s rad/s · water %s/%s"
+  "message.radiation.sprayer.washed": "Washed off %s rad/s · water %s/%s",
+  "message.radiation.probe.aim": "Point the probe at the ground or at water",
+  "message.radiation.probe.header": "=== Ground contamination at %s ===",
+  "message.radiation.probe.header_water": "=== Water contamination at %s ===",
+  "message.radiation.probe.clean": "Clean: no contamination in this patch",
+  "message.radiation.probe.total": "Patch: %s rad/s (one metre above an even patch of it)",
+  "message.radiation.probe.fallout": "  fallout: %s rad/s (fades away)",
+  "message.radiation.probe.lasting": "  lasting (fission products): %s rad/s (stays until washed off)",
+  "message.radiation.probe.near": "Strongest patch next to it: %s rad/s"
 }
