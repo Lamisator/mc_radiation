@@ -118,6 +118,11 @@ public class RadiationConfig {
 			this.effects = new ArrayList<>(List.of(effects));
 		}
 
+		/** The stage name for players: the built-in names are translated, names set in the config are shown as they are. */
+		public net.minecraft.network.chat.Component displayName() {
+			return RadiationConfig.stageName(this.name);
+		}
+
 		public int argb() {
 			try {
 				String hex = color.startsWith("#") ? color.substring(1) : color;
@@ -420,6 +425,19 @@ public class RadiationConfig {
 			this.effect = effect;
 			this.amplifier = amplifier;
 		}
+	}
+
+	/** Translation keys of the built-in stage names. */
+	private static final Map<String, String> STAGE_KEYS = Map.of(
+			"Mild Radiation Sickness", "radiation.stage.mild",
+			"Radiation Sickness", "radiation.stage.moderate",
+			"Severe Radiation Sickness", "radiation.stage.severe");
+
+	/** A stage name as shown to players: translated when it is one of the built-in names, else as written in the config. */
+	public static net.minecraft.network.chat.Component stageName(String name) {
+		String key = name == null ? null : STAGE_KEYS.get(name);
+		return key == null ? net.minecraft.network.chat.Component.literal(name == null ? "" : name)
+				: net.minecraft.network.chat.Component.translatableWithFallback(key, name);
 	}
 
 	private static List<Stage> defaultStages() {

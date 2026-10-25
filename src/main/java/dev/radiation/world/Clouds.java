@@ -376,6 +376,20 @@ public final class Clouds {
 		return id == null ? null : server.getLevel(ResourceKey.create(Registries.DIMENSION, id));
 	}
 
+	/** {@link #describe()} for players, translated on their side. */
+	public static List<net.minecraft.network.chat.Component> text() {
+		List<net.minecraft.network.chat.Component> lines = new ArrayList<>();
+		var clouds = dev.radiation.config.RadiationConfig.get().clouds;
+		for (Cloud c : state.clouds) {
+			double radius = c.r0 + clouds.spreadPerBlock * c.travelled;
+			double below = c.activity * (c.r0 / radius) * (c.r0 / radius) * Math.clamp((clouds.maxTravelBlocks - c.travelled) / (0.25 * clouds.maxTravelBlocks), 0, 1);
+			lines.add(net.minecraft.network.chat.Component.translatable(c.raining ? "commands.radiation.clouds.line.raining" : "commands.radiation.clouds.line",
+					String.format(Locale.ROOT, "%.0f %.0f %.0f", c.x, c.y, c.z), String.format(Locale.ROOT, "%.0f", c.travelled),
+					String.format(Locale.ROOT, "%.0f", 2 * radius), String.format(Locale.ROOT, "%.3f", below)));
+		}
+		return lines;
+	}
+
 	public static List<String> describe() {
 		List<String> lines = new ArrayList<>();
 		for (Cloud c : state.clouds) {

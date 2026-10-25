@@ -76,21 +76,21 @@ public class RadMeterHud implements HudElement {
 		g.fill(0, 0, WIDTH, 1, a(0xFFB01515));
 
 		// header: symbol + label, rate on the right
-		g.text(font, "☢ RADS", 5, 4, a(0xFFFF3B30), true);
+		g.text(font, net.minecraft.network.chat.Component.translatable("hud.radiation.rads"), 5, 4, a(0xFFFF3B30), true);
 		String rateText;
 		int rateColor;
 		if (exposure < 0) {
-			rateText = "?? RAD/s";
+			rateText = rate("??");
 			rateColor = 0xFF9A9A9A;
 		} else if (exposure > 0.005f) {
-			rateText = "+" + formatRate(exposure) + " RAD/s";
+			rateText = rate("+" + formatRate(exposure));
 			float pulse = 0.5f + 0.5f * Mth.sin(now / 140f);
 			rateColor = lerpColor(0xFFFF2A2A, 0xFFFFFFFF, pulse * Math.min(1f, exposure / 20f));
 		} else if (ClientRadiationState.netRate < -0.005f) {
-			rateText = "-" + formatRate(-ClientRadiationState.netRate) + " RAD/s";
+			rateText = rate("-" + formatRate(-ClientRadiationState.netRate));
 			rateColor = 0xFF55FF55;
 		} else {
-			rateText = "0.0 RAD/s";
+			rateText = rate("0.0");
 			rateColor = 0xFF9A9A9A;
 		}
 		g.text(font, rateText, WIDTH - 5 - font.width(rateText), 4, a(rateColor), true);
@@ -118,14 +118,18 @@ public class RadMeterHud implements HudElement {
 		String amount = String.format(Locale.ROOT, "%.0f / %.0f", shownRads, max);
 		g.text(font, amount, 5, 26, a(0xFFE0E0E0), true);
 		if (showProtection) {
-			String res = String.format(Locale.ROOT, "RES %.0f%%", protection * 100);
+			String res = net.minecraft.network.chat.Component.translatable("hud.radiation.protection", String.format(Locale.ROOT, "%.0f", protection * 100)).getString();
 			g.text(font, res, WIDTH - 5 - font.width(res), 26, a(0xFF55D8FF), true);
 		}
 
 		// sickness stage
 		if (stage != null) {
-			g.text(font, stage.name().toUpperCase(Locale.ROOT), 5, 37, a(stage.color()), true);
+			g.text(font, dev.radiation.config.RadiationConfig.stageName(stage.name()).getString().toUpperCase(Locale.ROOT), 5, 37, a(stage.color()), true);
 		}
+	}
+
+	private static String rate(String value) {
+		return net.minecraft.network.chat.Component.translatable("hud.radiation.rate", value).getString();
 	}
 
 	private static String formatRate(float value) {

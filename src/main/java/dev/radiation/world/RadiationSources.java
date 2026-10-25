@@ -62,6 +62,15 @@ public class RadiationSources {
 			return String.format(Locale.ROOT, "%s [%s] (%d %d %d) -> (%d %d %d), %.1f rad/s%s",
 					name, dimension, minX, minY, minZ, maxX, maxY, maxZ, rads, fade > 0 ? String.format(Locale.ROOT, ", fade %.1f", fade) : "");
 		}
+
+		/** {@link #describe()} for players, translated on their side. */
+		public net.minecraft.network.chat.Component text() {
+			return net.minecraft.network.chat.Component.translatable("commands.radiation.zone.describe", name, dimension,
+					String.format(Locale.ROOT, "%d %d %d", minX, minY, minZ), String.format(Locale.ROOT, "%d %d %d", maxX, maxY, maxZ),
+					String.format(Locale.ROOT, "%.1f", rads), fade > 0
+							? net.minecraft.network.chat.Component.translatable("commands.radiation.zone.fade", String.format(Locale.ROOT, "%.1f", fade))
+							: net.minecraft.network.chat.Component.empty());
+		}
 	}
 
 	/** A point that radiates in all directions, getting weaker with distance. */
@@ -108,6 +117,19 @@ public class RadiationSources {
 			}
 			return String.format(Locale.ROOT, "%s [%s] (%.1f %.1f %.1f), %.2f rad/s, radius %.1f, %s%s%s",
 					name, dimension, x, y, z, rads, radius, falloff.name().toLowerCase(Locale.ROOT), shielded ? "" : ", unshielded", decay);
+		}
+
+		/** {@link #describe()} for players, translated on their side. */
+		public net.minecraft.network.chat.Component text() {
+			var extra = net.minecraft.network.chat.Component.empty();
+			if (!shielded) extra.append(net.minecraft.network.chat.Component.translatable("commands.radiation.source.unshielded"));
+			if (halfLifeTicks > 0) extra.append(net.minecraft.network.chat.Component.translatable("commands.radiation.source.half_life",
+					String.format(Locale.ROOT, "%.1f", halfLifeTicks / 24000.0)));
+			if (lifetimeTicks > 0) extra.append(net.minecraft.network.chat.Component.translatable("commands.radiation.source.lifetime",
+					String.format(Locale.ROOT, "%.1f", lifetimeTicks / 24000.0)));
+			return net.minecraft.network.chat.Component.translatable("commands.radiation.source.describe", name, dimension,
+					String.format(Locale.ROOT, "%.1f %.1f %.1f", x, y, z), String.format(Locale.ROOT, "%.2f", rads),
+					String.format(Locale.ROOT, "%.1f", radius), falloff.name().toLowerCase(Locale.ROOT), extra);
 		}
 	}
 

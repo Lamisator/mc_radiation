@@ -52,8 +52,8 @@ public final class RadiationCommands {
 	private static int thirst(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		var players = EntityArgument.getPlayers(ctx, "targets");
 		for (ServerPlayer p : players) {
-			ctx.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT, "%s: thirst %.1f / 20", p.getName().getString(),
-					dev.radiation.thirst.Thirst.get(p))), false);
+			ctx.getSource().sendSuccess(() -> Component.translatable("commands.radiation.thirst.get", p.getDisplayName(),
+					String.format(Locale.ROOT, "%.1f", dev.radiation.thirst.Thirst.get(p))), false);
 		}
 		return players.size();
 	}
@@ -63,13 +63,13 @@ public final class RadiationCommands {
 		for (ServerPlayer p : players) {
 			dev.radiation.thirst.Thirst.set(p, points);
 		}
-		ctx.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT, "Thirst set to %.1f for %d player(s)", points, players.size())), true);
+		ctx.getSource().sendSuccess(() -> Component.translatable("commands.radiation.thirst.set", String.format(Locale.ROOT, "%.1f", points), players.size()), true);
 		return players.size();
 	}
 
 	private static int wind(CommandContext<CommandSourceStack> ctx) {
-		String text = dev.radiation.world.Wind.describe(ctx.getSource().getLevel());
-		ctx.getSource().sendSuccess(() -> Component.literal(Character.toUpperCase(text.charAt(0)) + text.substring(1)), false);
+		Component text = dev.radiation.world.Wind.text(ctx.getSource().getLevel());
+		ctx.getSource().sendSuccess(() -> text, false);
 		return 1;
 	}
 
@@ -77,7 +77,8 @@ public final class RadiationCommands {
 		Vec3 pos = Vec3Argument.getVec3(ctx, "pos");
 		float rads = FloatArgumentType.getFloat(ctx, "rads");
 		dev.radiation.world.Clouds.release(ctx.getSource().getLevel(), pos, rads, radius, altitude);
-		ctx.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT, "Radioactive cloud released: %.2f rad/s, %.0f blocks, %.0f up", rads, radius, altitude)), true);
+		ctx.getSource().sendSuccess(() -> Component.translatable("commands.radiation.cloud.released", String.format(Locale.ROOT, "%.2f", rads),
+				String.format(Locale.ROOT, "%.0f", radius), String.format(Locale.ROOT, "%.0f", altitude)), true);
 		return 1;
 	}
 
@@ -130,8 +131,8 @@ public final class RadiationCommands {
 											var pos = net.minecraft.commands.arguments.coordinates.BlockPosArgument.getBlockPos(ctx, "pos");
 											float rads = com.mojang.brigadier.arguments.FloatArgumentType.getFloat(ctx, "rads");
 											dev.radiation.world.Contamination.contaminate(ctx.getSource().getLevel(), pos, rads);
-											ctx.getSource().sendSuccess(() -> Component.literal(String.format(Locale.ROOT,
-													"Contaminated the patch at %d %d %d with %.3f rad/s", pos.getX(), pos.getY(), pos.getZ(), rads)), true);
+											ctx.getSource().sendSuccess(() -> Component.translatable("commands.radiation.contamination.added",
+													String.format(Locale.ROOT, "%d %d %d", pos.getX(), pos.getY(), pos.getZ()), String.format(Locale.ROOT, "%.3f", rads)), true);
 											return 1;
 										}))))
 						.then(literal("clear").then(argument("radius", IntegerArgumentType.integer(1, 4096))
@@ -139,7 +140,7 @@ public final class RadiationCommands {
 									int r = IntegerArgumentType.getInteger(ctx, "radius");
 									int n = dev.radiation.world.Contamination.clear(ctx.getSource().getLevel(),
 											net.minecraft.core.BlockPos.containing(ctx.getSource().getPosition()), r);
-									ctx.getSource().sendSuccess(() -> Component.literal(n + " contaminated patches removed within " + r + " blocks"), true);
+									ctx.getSource().sendSuccess(() -> Component.translatable("commands.radiation.contamination.cleared", n, r), true);
 									return n;
 								}))))
 				.then(literal("benchmark")
@@ -184,9 +185,9 @@ public final class RadiationCommands {
 							return wind(ctx);
 						})))
 				.then(literal("clouds").executes(ctx -> {
-					List<String> lines = dev.radiation.world.Clouds.describe();
-					if (lines.isEmpty()) ctx.getSource().sendSuccess(() -> Component.literal("No radioactive clouds."), false);
-					for (String line : lines) ctx.getSource().sendSuccess(() -> Component.literal(line), false);
+					List<Component> lines = dev.radiation.world.Clouds.text();
+					if (lines.isEmpty()) ctx.getSource().sendSuccess(() -> Component.translatable("commands.radiation.clouds.none"), false);
+					for (Component line : lines) ctx.getSource().sendSuccess(() -> line, false);
 					return lines.size();
 				}))
 				.then(literal("cloud").then(argument("pos", Vec3Argument.vec3()).then(argument("rads", FloatArgumentType.floatArg(0.001F, 1000))
@@ -205,7 +206,7 @@ public final class RadiationCommands {
 		RadiationConfig config = RadiationConfig.get();
 		float rads = RadiationTracker.getRads(player);
 		int stage = config.stageIndexFor(rads);
-		Component condition = stage >= 0 ? Component.literal(config.stages.get(stage).name).withColor(config.stages.get(stage).argb() & 0xFFFFFF)
+		Component condition = stage >= 0 ? config.stages.get(stage).displayName().copy().withColor(config.stages.get(stage).argb() & 0xFFFFFF)
 				: Component.translatable("message.radiation.healthy").withStyle(ChatFormatting.GREEN);
 		ctx.getSource().sendSuccess(() -> Component.translatable("commands.radiation.self",
 				fmt(rads), fmt(config.maxRads), condition), false);
@@ -305,14 +306,14 @@ public final class RadiationCommands {
 		if (zones) {
 			source.sendSuccess(() -> Component.translatable("commands.radiation.list.zones", sources.zones.size()).withStyle(ChatFormatting.GOLD), false);
 			for (RadiationSources.Zone zone : sources.zones) {
-				source.sendSuccess(() -> Component.literal(" - " + zone.describe()), false);
+				source.sendSuccess(() -> Component.literal(" - ").append(zone.text()), false);
 			}
 			count += sources.zones.size();
 		}
 		if (points) {
 			source.sendSuccess(() -> Component.translatable("commands.radiation.list.sources", sources.sources.size()).withStyle(ChatFormatting.GOLD), false);
 			for (RadiationSources.PointSource point : sources.sources) {
-				source.sendSuccess(() -> Component.literal(" - " + point.describe()), false);
+				source.sendSuccess(() -> Component.literal(" - ").append(point.text()), false);
 			}
 			count += sources.sources.size();
 			if (zones) {
@@ -334,13 +335,13 @@ public final class RadiationCommands {
 	}
 
 	private static int contamination(CommandContext<CommandSourceStack> ctx, int radius) {
-		var lines = dev.radiation.world.Contamination.describe(ctx.getSource().getLevel(),
+		var lines = dev.radiation.world.Contamination.text(ctx.getSource().getLevel(),
 				net.minecraft.core.BlockPos.containing(ctx.getSource().getPosition()), radius);
 		if (lines.isEmpty()) {
-			ctx.getSource().sendSuccess(() -> Component.literal("No contaminated ground or water in this dimension"), false);
+			ctx.getSource().sendSuccess(() -> Component.translatable("commands.radiation.contamination.none"), false);
 		}
-		for (String line : lines) {
-			ctx.getSource().sendSuccess(() -> Component.literal(line), false);
+		for (Component line : lines) {
+			ctx.getSource().sendSuccess(() -> line, false);
 		}
 		return lines.size();
 	}
@@ -383,7 +384,12 @@ public final class RadiationCommands {
 				points.size(), (t1 - t0) / 1e6, (t1 - t0) / 1e6 / Math.max(1, points.size()), (t2 - t1) / 1e6, (t2 - t1) / 1e6 / Math.max(1, points.size()),
 				java.util.stream.IntStream.range(0, fast.length).mapToDouble(i -> fast[i]).sum(), sumExact, worst * 100, counted);
 		dev.radiation.RadiationMod.LOGGER.info("Radiation benchmark: {}", line);
-		ctx.getSource().sendSuccess(() -> Component.literal(line), false);
+		Component message = Component.translatable("commands.radiation.benchmark", points.size(),
+				String.format(Locale.ROOT, "%.1f", (t1 - t0) / 1e6), String.format(Locale.ROOT, "%.3f", (t1 - t0) / 1e6 / Math.max(1, points.size())),
+				String.format(Locale.ROOT, "%.1f", (t2 - t1) / 1e6), String.format(Locale.ROOT, "%.3f", (t2 - t1) / 1e6 / Math.max(1, points.size())),
+				String.format(Locale.ROOT, "%.1f", java.util.stream.IntStream.range(0, fast.length).mapToDouble(i -> fast[i]).sum()),
+				String.format(Locale.ROOT, "%.1f", sumExact), String.format(Locale.ROOT, "%.1f", worst * 100), counted);
+		ctx.getSource().sendSuccess(() -> message, false);
 		return points.size();
 	}
 

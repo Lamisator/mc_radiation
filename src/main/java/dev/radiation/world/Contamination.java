@@ -621,8 +621,19 @@ public final class Contamination {
 		}
 	}
 
-	/** Lines for {@code /radiation contamination}. */
+	/** Lines for {@code /radiation contamination}, translated on the player's side. */
+	public static List<net.minecraft.network.chat.Component> text(ServerLevel level, BlockPos at, int radius) {
+		List<net.minecraft.network.chat.Component> lines = new ArrayList<>();
+		describeAll(level, at, radius, lines);
+		return lines;
+	}
+
+	/** Lines for {@code /radiation contamination} (plain English, for logs and tests). */
 	public static List<String> describe(ServerLevel level, BlockPos at, int radius) {
+		return describeAll(level, at, radius, null);
+	}
+
+	private static List<String> describeAll(ServerLevel level, BlockPos at, int radius, List<net.minecraft.network.chat.Component> out) {
 		List<String> lines = new ArrayList<>();
 		long now = level.getGameTime();
 		String dim = RadiationTracker.dimensionId(level);
@@ -648,6 +659,13 @@ public final class Contamination {
 			String where = strongest == null ? "" : String.format(Locale.ROOT, " at %d %s %d", strongest.cx * 4 + 2,
 					strongest.y == UNKNOWN ? "?" : Integer.toString(strongest.y), strongest.cz * 4 + 2);
 			lines.add(String.format(Locale.ROOT, "%s: %d patches within %d blocks, strongest %.3f rad/s%s, sum %.2f", entry.getKey(), n, radius, most, where, total));
+			if (out != null) {
+				out.add(net.minecraft.network.chat.Component.translatable("commands.radiation.contamination." + entry.getKey(), n, radius,
+						String.format(Locale.ROOT, "%.3f", most), strongest == null ? net.minecraft.network.chat.Component.empty()
+								: net.minecraft.network.chat.Component.translatable("commands.radiation.contamination.at", String.format(Locale.ROOT, "%d %s %d",
+										strongest.cx * 4 + 2, strongest.y == UNKNOWN ? "?" : Integer.toString(strongest.y), strongest.cz * 4 + 2)),
+						String.format(Locale.ROOT, "%.2f", total)));
+			}
 		}
 		return lines;
 	}

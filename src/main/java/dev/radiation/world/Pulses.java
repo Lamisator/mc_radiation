@@ -64,7 +64,7 @@ final class Pulses {
 			if (value > EmitterIndex.NEGLIGIBLE) {
 				total += value;
 				if (breakdown != null) {
-					breakdown.add(net.minecraft.network.chat.Component.literal(String.format(Locale.ROOT, "  %s: %.2f rad/s", e.getKey(), value)));
+					breakdown.add(net.minecraft.network.chat.Component.translatable("commands.radiation.check.pulse", e.getKey(), String.format(Locale.ROOT, "%.2f", value)));
 				}
 			}
 		}

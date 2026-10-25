@@ -202,11 +202,11 @@ public final class RadiationTracker {
 			applyMaxHealthModifier(player, stage >= 0 ? config.stages.get(stage).maxHealthModifier : 0);
 			if (stage > previous) {
 				RadiationConfig.Stage info = config.stages.get(stage);
-				player.sendOverlayMessage(Component.translatable("message.radiation.stage_worse", info.name).withColor(info.argb() & 0xFFFFFF));
+				player.sendOverlayMessage(Component.translatable("message.radiation.stage_worse", info.displayName()).withColor(info.argb() & 0xFFFFFF));
 				player.level().playSound(null, player.getX(), player.getY(), player.getZ(), ModRegistry.RAD_WARNING, SoundSource.PLAYERS, 0.8f, 1f);
 			} else if (stage >= 0) {
 				RadiationConfig.Stage info = config.stages.get(stage);
-				player.sendOverlayMessage(Component.translatable("message.radiation.stage_better", info.name).withStyle(ChatFormatting.GREEN));
+				player.sendOverlayMessage(Component.translatable("message.radiation.stage_better", info.displayName()).withStyle(ChatFormatting.GREEN));
 			} else if (previous >= 0 && player.isAlive()) {
 				player.sendOverlayMessage(Component.translatable("message.radiation.cured").withStyle(ChatFormatting.GREEN));
 			}
@@ -360,7 +360,7 @@ public final class RadiationTracker {
 				float value = zone.radsAt(pos.x, pos.y, pos.z);
 				total += value;
 				if (breakdown != null) {
-					breakdown.add(Component.literal(String.format(Locale.ROOT, "  zone %s: %.2f rad/s", zone.name, value)));
+					breakdown.add(Component.translatable("commands.radiation.check.zone", zone.name, String.format(Locale.ROOT, "%.2f", value)));
 				}
 			}
 		}
@@ -374,7 +374,7 @@ public final class RadiationTracker {
 			if (value > 0) {
 				total += value;
 				if (breakdown != null) {
-					breakdown.add(Component.literal(String.format(Locale.ROOT, "  source %s: %.2f rad/s", source.name, value)));
+					breakdown.add(Component.translatable("commands.radiation.check.source", source.name, String.format(Locale.ROOT, "%.2f", value)));
 				}
 			}
 		}
@@ -383,14 +383,14 @@ public final class RadiationTracker {
 		if (ground > 0) {
 			total += (float) ground;
 			if (breakdown != null) {
-				breakdown.add(Component.literal(String.format(Locale.ROOT, "  contaminated ground: %.2f rad/s", ground)));
+				breakdown.add(Component.translatable("commands.radiation.check.ground", String.format(Locale.ROOT, "%.2f", ground)));
 			}
 		}
 		double water = Contamination.waterDose(level, pos);
 		if (water > 0) {
 			total += (float) water;
 			if (breakdown != null) {
-				breakdown.add(Component.literal(String.format(Locale.ROOT, "  contaminated water: %.2f rad/s", water)));
+				breakdown.add(Component.translatable("commands.radiation.check.water", String.format(Locale.ROOT, "%.2f", water)));
 			}
 		}
 
@@ -416,7 +416,8 @@ public final class RadiationTracker {
 				value *= transmission(level, Vec3.atCenterOf(blockPos), pos, blockPos, config);
 				if (value > EmitterIndex.NEGLIGIBLE) {
 					total += (float) value;
-					breakdown.add(Component.literal(String.format(Locale.ROOT, "  %s at %d %d %d: %.2f rad/s", e.block, e.x, e.y, e.z, value)));
+					breakdown.add(Component.translatable("commands.radiation.check.block", e.block,
+							String.format(Locale.ROOT, "%d %d %d", e.x, e.y, e.z), String.format(Locale.ROOT, "%.2f", value)));
 				}
 			}
 		}
@@ -432,7 +433,8 @@ public final class RadiationTracker {
 				if (value > 0) {
 					total += value;
 					if (breakdown != null) {
-						breakdown.add(Component.literal(String.format(Locale.ROOT, "  waste barrel at %d %d %d: %.2f rad/s", barrel.x, barrel.y, barrel.z, value)));
+						breakdown.add(Component.translatable("commands.radiation.check.barrel",
+								String.format(Locale.ROOT, "%d %d %d", barrel.x, barrel.y, barrel.z), String.format(Locale.ROOT, "%.2f", value)));
 					}
 				}
 			}

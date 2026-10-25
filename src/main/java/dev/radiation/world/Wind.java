@@ -71,6 +71,15 @@ public final class Wind {
 				fixed() ? " (fixed)" : "");
 	}
 
+	/** {@link #describe} for players, translated on their side. */
+	public static net.minecraft.network.chat.Component text(ServerLevel level) {
+		double to = towards(level);
+		return net.minecraft.network.chat.Component.translatable(fixed() ? "commands.radiation.wind.fixed" : "commands.radiation.wind",
+				net.minecraft.network.chat.Component.translatable("commands.radiation.wind.from." + compass(to + 180)),
+				net.minecraft.network.chat.Component.translatable("commands.radiation.wind.to." + compass(to)),
+				String.format(Locale.ROOT, "%.0f", to), String.format(Locale.ROOT, "%.1f", speed(level)));
+	}
+
 	private static String compass(double degrees) {
 		String[] names = {"north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"};
 		return names[(int) Math.floorMod(Math.round(degrees / 45.0), 8)];

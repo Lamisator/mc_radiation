@@ -35,7 +35,7 @@ public class GeigerCounterItem extends Item {
 			float protection = RadiationTracker.protection(serverPlayer, config);
 			float rads = RadiationTracker.getRads(serverPlayer);
 			int stage = config.stageIndexFor(rads);
-			String condition = stage >= 0 ? config.stages.get(stage).name : Component.translatable("message.radiation.healthy").getString();
+			Component condition = stage >= 0 ? config.stages.get(stage).displayName() : Component.translatable("message.radiation.healthy");
 
 			serverPlayer.sendSystemMessage(Component.translatable("message.radiation.reading.header").withStyle(ChatFormatting.GOLD));
 			serverPlayer.sendSystemMessage(Component.translatable("message.radiation.reading.ambient",

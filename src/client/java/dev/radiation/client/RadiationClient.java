@@ -21,6 +21,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 public class RadiationClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
+		AutoLanguage.apply();
 		ClientConfig.load();
 
 		ClientPlayNetworking.registerGlobalReceiver(RadiationStatusPayload.TYPE, (payload, context) -> ClientRadiationState.onStatus(payload));
